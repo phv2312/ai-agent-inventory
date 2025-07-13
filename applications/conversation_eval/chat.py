@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-type ParserReturnT = dict[Literal["assistant", "user"], list[str]]
+type ParserReturnT = dict[Literal["assistant", "user", "pairs"], list[str]]
 
 
 class ConversationType(StrEnum):
@@ -45,9 +45,11 @@ class CallParser(BaseParser):
         mp_messages: dict[Literal["assistant", "user"], list[str]] = {
             "assistant": [],
             "user": [],
+            "pairs": [],
         }
 
         last_key: Literal["", "assistant", "user"] = ""
+        first_key: Literal["assistant", "user"] = "assistant"
         for content in contents:
             splited_contents = content.split(self.SEPERATOR, maxsplit=1)
 
@@ -67,8 +69,20 @@ class CallParser(BaseParser):
             if last_key == key and len(mp_messages[key]) > 0:
                 mp_messages[key][-1] += f" {splited_content.strip()}"
             else:
+                if last_key == "":
+                    first_key = key
                 mp_messages[key].append(splited_content.strip())
             last_key = key
+
+        num_ai_messages = len(mp_messages["assistant"])
+        user_messages = [*mp_messages["user"], ""]
+        if first_key == "assistant":
+            user_messages = ["", *mp_messages["user"]]
+
+        mp_messages["pairs"] = [
+            (mp_messages["assistant"][i], user_messages[i])
+            for i in range(num_ai_messages)
+        ]
 
         return mp_messages
 
@@ -85,9 +99,11 @@ class ChatParser(BaseParser):
         mp_messages: ParserReturnT = {
             "assistant": [],
             "user": [],
+            "pairs": [],
         }
 
         last_key: Literal["assistant", "user", ""] = ""
+        first_key: Literal["assistant", "user"] = "assistant"
         for content in contents:
             if content.startswith(self.ASSISTANT):
                 key = "assistant"
@@ -110,8 +126,20 @@ class ChatParser(BaseParser):
             if last_key == key and len(mp_messages[key]) > 0:
                 mp_messages[key][-1] += f" {splited_content.strip()}"
             else:
+                if last_key == "":
+                    first_key = key
                 mp_messages[key].append(splited_content.strip())
             last_key = key
+
+        num_ai_messages = len(mp_messages["assistant"])
+        user_messages = [*mp_messages["user"], ""]
+        if first_key == "assistant":
+            user_messages = ["", *mp_messages["user"]]
+
+        mp_messages["pairs"] = [
+            (mp_messages["assistant"][i], user_messages[i])
+            for i in range(num_ai_messages)
+        ]
 
         return mp_messages
 
@@ -133,6 +161,10 @@ async def main() -> None:
 
     mp_messages = await chat_parser.parse(chat_history_path)
     # logger.info(await call_parser.parse(call_history_path))
+
+    print(mp_messages)
+
+    exit()
 
     # Init services once
     container = Container()

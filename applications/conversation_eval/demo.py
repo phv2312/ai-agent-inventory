@@ -17,6 +17,10 @@ import gradio as gr
 from gradio.components.file import File
 
 from agent.batched import Batched
+from agent.container import Container
+from agent.models.messages import UserMessage
+from agent.programs.impl.followup_comparison import FollowupComparisonResponse
+from agent.programs.impl.semantic_comparison import SemanticComparisonResponse
 from agent.storages.search_engine.bm25s import BM25SSearchEngine, BM25SConfig
 from applications.conversation_eval.indexing import ConstantIngestor
 from applications.conversation_eval.chat import ChatParser, CallParser, ConversationType
@@ -30,9 +34,16 @@ bm25s_engine = None
 chat_parser = ChatParser()
 call_parser = CallParser()
 ingestor = ConstantIngestor()
+container = Container()
 
 topk = 1
 batch_size = 5
+semantic_comparison_prompt_path = (
+    "agent/prompts/conversation_eval/semantic_comparison.md"
+)
+followup_comparison_prompt_path = (
+    "agent/prompts/conversation_eval/followup_comparison.md"
+)
 
 
 @lru_cache(maxsize=1)
@@ -67,7 +78,15 @@ class EvaluationRow(BaseModel):
     score: float
     rule: str
     rule_constant: str
-    message: str
+    agent_message: str
+    user_message: str
+    is_semantic_same: bool = (True,)
+    semantic_judge_reason_first_sentence: str = ("",)
+    semantic_judge_reason_second_sentence: str = ("",)
+    followup_resolved: bool = False
+    followup_score: float = 0.0
+    followup_goodpoints: str = ""
+    followup_notgoodpoints: str = ""
 
 
 class HighlighedOutput(BaseModel):
@@ -82,6 +101,42 @@ class HighlighedOutput(BaseModel):
         if self.wrong + self.correct == 0:
             return 0.0
         return self.correct / (self.wrong + self.correct + 1e-6)
+
+
+async def get_semantic_difference(
+    rule_constraint: str, ai_message: str
+) -> SemanticComparisonResponse:
+    program = container.programs.get("semantic_comparison")
+    async with aiofiles.open(semantic_comparison_prompt_path, "r") as file:
+        template = Template(await file.read())
+    rendered_template = template.render(
+        first_sentence=rule_constraint.strip(),
+        second_sentence=ai_message.strip(),
+    )
+
+    return await program.aprocess(message=UserMessage(content=rendered_template))
+
+
+async def get_followup_comparison(
+    user_message: str, ai_message: str
+) -> FollowupComparisonResponse:
+    if user_message.strip() == "":
+        return FollowupComparisonResponse(
+            confidence=0.0,
+            is_concern_solved=False,
+            good_points="",
+            notgood_points="",
+        )
+
+    program = container.programs.get("followup_comparison")
+    async with aiofiles.open(followup_comparison_prompt_path, "r") as file:
+        template = Template(await file.read())
+    rendered_template = template.render(
+        first_sentence=user_message.strip(),
+        second_sentence=ai_message.strip(),
+    )
+
+    return await program.aprocess(message=UserMessage(content=rendered_template))
 
 
 def highlight_difference(query: str, doc: str) -> HighlighedOutput:
@@ -211,9 +266,10 @@ async def analyze_conversation(
         counter = 1
         num_ai_messages = len(mp_messages["assistant"])
 
-        for ai_contents in Batched.iter(
-            mp_messages["assistant"], batch_size=batch_size
-        ):
+        for pairs_contents in Batched.iter(mp_messages["pairs"], batch_size=batch_size):
+            ai_contents = [pair[0] for pair in pairs_contents]
+            user_contents = [pair[1] for pair in pairs_contents]
+
             start_time = time.perf_counter()
             retrieved_chunks_list = await asyncio.gather(
                 *[
@@ -222,7 +278,9 @@ async def analyze_conversation(
                 ]
             )
 
-            for ai_content, retrieved_chunks in zip(ai_contents, retrieved_chunks_list):
+            for ai_content, user_content, retrieved_chunks in zip(
+                ai_contents, user_contents, retrieved_chunks_list
+            ):
                 if len(retrieved_chunks) == 0:
                     raise ValueError(
                         f"No constants found for AI message: {ai_content[:50]}"
@@ -243,12 +301,27 @@ async def analyze_conversation(
                     prompt_content = most_similar_chunk.chunk.text
 
                 difference = highlight_difference(ai_content, prompt_content)
+                semantic_result = await get_semantic_difference(
+                    prompt_content, ai_content
+                )
+                followup_result = await get_followup_comparison(
+                    user_message=user_content, ai_message=ai_content
+                )
+
                 responses.append(
                     EvaluationRow(
                         score=difference.score,
                         rule=most_similar_chunk.chunk.metadata.group_name,
-                        message=difference.query,
+                        agent_message=difference.query,
+                        user_message=user_content,
                         rule_constant=difference.doc,
+                        is_semantic_same=semantic_result.is_same_meaning,
+                        semantic_judge_reason_first_sentence=semantic_result.reason_first_sentence,
+                        semantic_judge_reason_second_sentence=semantic_result.reason_second_sentence,
+                        followup_resolved=followup_result.is_concern_solved,
+                        followup_score=followup_result.confidence,
+                        followup_goodpoints=followup_result.good_points,
+                        followup_notgoodpoints=followup_result.notgood_points,
                     )
                 )
                 logger.info(
