@@ -10,6 +10,7 @@ dependencies = [
     "langchain-text-splitters>=0.3.8,<0.4.0",
     "langgraph>=0.4.1,<0.5.0",
     "openai>=1.76.2,<1.77.0",
+    "openpyxl>=3.1.5",
     "pip>=25.1,<26.0",
     "pydantic>=2.11.4,<2.12.0",
     "pydantic-settings>=2.9.1,<2.10.0",
@@ -23,6 +24,9 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
+]
+ui = [
+    "gradio>=5.34.2",
 ]
 
 [tool.mypy]

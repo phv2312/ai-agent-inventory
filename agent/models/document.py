@@ -16,9 +16,7 @@ class Source(StrEnum):
 class DocumentMetadata(BaseModel):
     model_config = ConfigDict(extra="allow")
     source: Literal[Source.DOCUMENT] = Source.DOCUMENT
-    filename: Annotated[str, BeforeValidator(lambda _input: str(_input))]
-    pageidx: int
-    rendered_page_path: str
+    group_name: str = ""
 
 
 class WebsearchMetdata(BaseModel):

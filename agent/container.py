@@ -7,6 +7,9 @@ from agent.programs import (
     IProgram,
     BookingOperationProgram,
 )
+from agent.programs.impl.evaluation import EvaluationProgram
+from agent.programs.impl.followup_comparison import FollowupComparisonProgram
+from agent.programs.impl.semantic_comparison import SemanticComparisonProgram
 from agent.text_splitters import (
     ITextSplitter,
     LangchainTextSplitter,
@@ -178,7 +181,12 @@ class WebSearchProvider(
 
 class ProgramProvider(
     BaseProvider[
-        Literal["booking_operation"],
+        Literal[
+            "booking_operation",
+            "evaluation",
+            "semantic_comparison",
+            "followup_comparison",
+        ],
         IProgram[Any],
     ]
 ):
@@ -189,16 +197,51 @@ class ProgramProvider(
     def mp_name_init(
         self,
     ) -> dict[
-        Literal["booking_operation"],
+        Literal[
+            "booking_operation",
+            "evaluation",
+            "semantic_comparison",
+            "followup_comparison",
+        ],
         Callable[[], IProgram[Any]],
     ]:
         return {
             "booking_operation": self.init_booking_operation_program,
+            "evaluation": self.evaluation,
+            "semantic_comparison": self.semantic_comparison,
+            "followup_comparison": self.followup_comparison,
         }
 
     @lru_cache(maxsize=1)
     def init_booking_operation_program(self) -> BookingOperationProgram:
         return BookingOperationProgram(
+            api_key=self.env.openai_api_key,
+            api_version=self.env.openai_api_version,
+            azure_endpoint=self.env.openai_azure_endpoint,
+            deployment_name=self.env.openai_chat_deployment_name,
+        )
+
+    @lru_cache(maxsize=1)
+    def evaluation(self) -> EvaluationProgram:
+        return EvaluationProgram(
+            api_key=self.env.openai_api_key,
+            api_version=self.env.openai_api_version,
+            azure_endpoint=self.env.openai_azure_endpoint,
+            deployment_name=self.env.openai_chat_deployment_name,
+        )
+
+    @lru_cache(maxsize=1)
+    def semantic_comparison(self) -> SemanticComparisonProgram:
+        return SemanticComparisonProgram(
+            api_key=self.env.openai_api_key,
+            api_version=self.env.openai_api_version,
+            azure_endpoint=self.env.openai_azure_endpoint,
+            deployment_name=self.env.openai_chat_deployment_name,
+        )
+
+    @lru_cache(maxsize=1)
+    def followup_comparison(self) -> FollowupComparisonProgram:
+        return FollowupComparisonProgram(
             api_key=self.env.openai_api_key,
             api_version=self.env.openai_api_version,
             azure_endpoint=self.env.openai_azure_endpoint,

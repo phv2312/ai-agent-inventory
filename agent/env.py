@@ -20,13 +20,13 @@ class OpenAIEmbeddingSettings(OpenAISettings):
 
 
 class MilvusSettings(BaseSettings):
-    milvus_collection_name: str
-    milvus_uri: str
-    milvus_token: str
+    milvus_collection_name: str = "agent"
+    milvus_uri: str = "milvus-lite.db"
+    milvus_token: str = ""
 
 
 class TavilyWebSearchSettings(BaseSettings):
-    tavily_api_key: str
+    tavily_api_key: str = ""
 
 
 class Env(

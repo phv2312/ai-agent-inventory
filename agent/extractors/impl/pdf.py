@@ -79,9 +79,7 @@ class PDFExtractor:
                     Chunk(
                         text=splitted_text,
                         metadata=DocumentMetadata(
-                            filename=str(filepath),
-                            pageidx=pageidx,
-                            rendered_page_path=imagepath,
+                            group_name=str(filepath),
                         ),
                     )
                     for splitted_text in splitted_texts

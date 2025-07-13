@@ -52,7 +52,7 @@ class MilvusConfig(BaseModel):
 
         return ScoredChunk(
             chunk=Chunk.model_validate(params),
-            score=1.0 - record["distance"],
+            score=record["distance"],
         )
 
     @property
@@ -101,7 +101,7 @@ class MilvusConfig(BaseModel):
             field_name=self.fieldname_ann_embedding,
             index_name="ann_index",
             index_type="AUTOINDEX",
-            metric_type="IP",
+            metric_type="COSINE",
         )
 
         return params

@@ -41,6 +41,7 @@ class BaseProgram[ModelOutT: BaseModel]:
             model=self.deployment_name,
             messages=messages,
             response_format=self.ModelOutCls,
+            temperature=0.0,
         )
 
         first_choice = completion.choices[0].message

@@ -86,7 +86,7 @@ def get_graph():
     dependencies = GraphDependencies(samplepath)
     graph = BookingAssistantGraph(dependencies)
 
-    print(graph.graph.get_graph().draw_mermaid(with_styles=False))
+    print(graph.graph.get_graph(xray=3).draw_mermaid(with_styles=False))
 
 
 if __name__ == "__main__":
