@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
+from enum import StrEnum, auto
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Callable
 
 from agent.text_splitters import (
     ITextSplitter,
     LangchainTextSplitter,
 )
-from agent.searches import (
+from agent.websearches import (
     TavilyWebSearch,
     IWebSearch,
 )
@@ -30,6 +31,31 @@ from agent.env import Env
 from agent.storages.local import Storage
 
 
+class EmbeddingModel(StrEnum):
+    AZURE_OPENAI = auto()
+
+
+class TextSplitterModel(StrEnum):
+    LANGCHAIN = auto()
+
+
+class ExtractorModel(StrEnum):
+    PDF = auto()
+
+
+class VectorDBModel(StrEnum):
+    MILVUS = auto()
+
+
+class WebSearchModel(StrEnum):
+    TAVILY = auto()
+
+
+class ChatModel(StrEnum):
+    AZURE_OPENAI = auto()
+    ANTHROPIC = auto()
+
+
 class BaseProvider[NameT, ReturnT](ABC):
     @property
     def supported_models(self) -> list[NameT]:
@@ -47,16 +73,16 @@ class BaseProvider[NameT, ReturnT](ABC):
         return self.mp_name_init[model_name]()
 
 
-class EmbeddingProvider(BaseProvider[Literal["azure_openai"], IEmbeddingModel]):
+class EmbeddingProvider(BaseProvider[EmbeddingModel, IEmbeddingModel]):
     def __init__(self, env: Env) -> None:
         self.env = env
 
     @property
     def mp_name_init(
         self,
-    ) -> dict[Literal["azure_openai"], Callable[[], IEmbeddingModel]]:
+    ) -> dict[EmbeddingModel, Callable[[], IEmbeddingModel]]:
         return {
-            "azure_openai": self.init_azure_openai,
+            EmbeddingModel.AZURE_OPENAI: self.init_azure_openai,
         }
 
     @lru_cache(maxsize=1)
@@ -71,7 +97,7 @@ class EmbeddingProvider(BaseProvider[Literal["azure_openai"], IEmbeddingModel]):
 
 class TextSplitterProvider(
     BaseProvider[
-        Literal["langchain"],
+        TextSplitterModel,
         ITextSplitter,
     ]
 ):
@@ -79,9 +105,11 @@ class TextSplitterProvider(
         self.env = env
 
     @property
-    def mp_name_init(self) -> dict[Literal["langchain"], Callable[[], ITextSplitter]]:
+    def mp_name_init(
+        self,
+    ) -> dict[TextSplitterModel, Callable[[], ITextSplitter]]:
         return {
-            "langchain": self.init_langchain_text_splitter,
+            TextSplitterModel.LANGCHAIN: self.init_langchain_text_splitter,
         }
 
     @lru_cache(maxsize=1)
@@ -91,7 +119,7 @@ class TextSplitterProvider(
 
 class ExtractorProvider(
     BaseProvider[
-        Literal["pdf"],
+        ExtractorModel,
         IExtractor,
     ]
 ):
@@ -103,19 +131,22 @@ class ExtractorProvider(
         self.text_splitter_provider = text_splitter_provider
 
     @property
-    def mp_name_init(self) -> dict[Literal["pdf"], Callable[[], IExtractor]]:
+    def mp_name_init(self) -> dict[ExtractorModel, Callable[[], IExtractor]]:
         return {
-            "pdf": self.init_pdf_extractor,
+            ExtractorModel.PDF: self.init_pdf_extractor,
         }
 
     @lru_cache(maxsize=1)
     def init_pdf_extractor(self) -> PDFExtractor:
-        return PDFExtractor(self.storage, self.text_splitter_provider.get("langchain"))
+        return PDFExtractor(
+            self.storage,
+            self.text_splitter_provider.get(TextSplitterModel.LANGCHAIN),
+        )
 
 
 class VectorDBProvider(
     BaseProvider[
-        Literal["milvus"],
+        VectorDBModel,
         Milvus,
     ]
 ):
@@ -123,9 +154,9 @@ class VectorDBProvider(
         self.env = env
 
     @property
-    def mp_name_init(self) -> dict[Literal["milvus"], Callable[[], Milvus]]:
+    def mp_name_init(self) -> dict[VectorDBModel, Callable[[], Milvus]]:
         return {
-            "milvus": self.init_milvus,
+            VectorDBModel.MILVUS: self.init_milvus,
         }
 
     @lru_cache(maxsize=1)
@@ -138,7 +169,7 @@ class VectorDBProvider(
 
 class WebSearchProvider(
     BaseProvider[
-        Literal["tavily"],
+        WebSearchModel,
         IWebSearch,
     ]
 ):
@@ -147,21 +178,21 @@ class WebSearchProvider(
         self.text_splitter_provider = text_splitter_provider
 
     @property
-    def mp_name_init(self) -> dict[Literal["tavily"], Callable[[], IWebSearch]]:
+    def mp_name_init(self) -> dict[WebSearchModel, Callable[[], IWebSearch]]:
         return {
-            "tavily": self.init_tavily_websearch,
+            WebSearchModel.TAVILY: self.init_tavily_websearch,
         }
 
     @lru_cache(maxsize=1)
     def init_tavily_websearch(self) -> TavilyWebSearch:
         return TavilyWebSearch(
             self.env.tavily_api_key,
-            splitter=self.text_splitter_provider.get("langchain"),
+            splitter=self.text_splitter_provider.get(TextSplitterModel.LANGCHAIN),
         )
 
 
-class StreamProvider(
-    BaseProvider[Literal["azure_openai", "anthropic"], IChatModel],
+class ChatProvider(
+    BaseProvider[ChatModel, IChatModel],
 ):
     def __init__(self, env: Env) -> None:
         self.env = env
@@ -169,10 +200,10 @@ class StreamProvider(
     @property
     def mp_name_init(
         self,
-    ) -> dict[Literal["azure_openai", "anthropic"], Callable[[], IChatModel]]:
+    ) -> dict[ChatModel, Callable[[], IChatModel]]:
         return {
-            "azure_openai": self.init_azure_openai,
-            "anthropic": self.init_anthropic,
+            ChatModel.AZURE_OPENAI: self.init_azure_openai,
+            ChatModel.ANTHROPIC: self.init_anthropic,
         }
 
     @lru_cache(maxsize=1)
@@ -198,19 +229,21 @@ class AgenticStrategyProvider:
         env: Env,
         vectordb_provider: VectorDBProvider,
         embedding_provider: EmbeddingProvider,
-        stream_provider: StreamProvider,
+        chat_provider: ChatProvider,
     ) -> None:
         self.env = env
         self.vectordb_provider = vectordb_provider
         self.embedding_provider = embedding_provider
-        self.stream_provider = stream_provider
+        self.chat_provider = chat_provider
 
     def get(self) -> AgenticChatStrategy:
         return AgenticChatStrategy(
             deps=ChatDeps(
-                vectordb=self.vectordb_provider.get("milvus"),
-                embedding_model=self.embedding_provider.get("azure_openai"),
-                stream_provider=self.stream_provider.get("azure_openai"),
+                vectordb=self.vectordb_provider.get(VectorDBModel.MILVUS),
+                embedding_model=self.embedding_provider.get(
+                    EmbeddingModel.AZURE_OPENAI
+                ),
+                stream_provider=self.chat_provider.get(ChatModel.AZURE_OPENAI),
             ),
             settings=AgenticSettings(
                 model_name=self.env.openai_chat_deployment_name,
@@ -248,8 +281,8 @@ class Container:
         return TextSplitterProvider(self.env)
 
     @cached_property
-    def streams(self) -> StreamProvider:
-        return StreamProvider(self.env)
+    def chats(self) -> ChatProvider:
+        return ChatProvider(self.env)
 
     @cached_property
     def agentic(self) -> AgenticStrategyProvider:
@@ -257,5 +290,8 @@ class Container:
             self.env,
             self.vectordbs,
             self.embeddings,
-            self.streams,
+            self.chats,
         )
+
+
+container = Container()
