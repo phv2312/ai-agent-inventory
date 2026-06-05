@@ -29,11 +29,20 @@ class TavilyWebSearchSettings(BaseSettings):
     tavily_api_key: str
 
 
+class AnthropicSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        case_sensitive=False,
+    )
+
+    anthropic_api_key: str = ""
+
+
 class Env(
     OpenAIChatSettings,
     OpenAIEmbeddingSettings,
     MilvusSettings,
     TavilyWebSearchSettings,
+    AnthropicSettings,
     BaseSettings,
 ):
     model_config = SettingsConfigDict(case_sensitive=False)

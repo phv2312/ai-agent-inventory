@@ -26,7 +26,7 @@ class HybridSearch:
         query: str,
         top_k: int = 5,
     ) -> ScoredChunks:
-        query_embedding = await self.embedding_model.aembedding([query])
+        query_embedding = await self.embedding_model.embed([query])
 
         if len(query_embedding) == 0:
             raise ValueError("Query embedding is empty")

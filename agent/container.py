@@ -1,12 +1,8 @@
 from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Callable, Literal
 
-from agent.programs import (
-    IProgram,
-    BookingOperationProgram,
-)
 from agent.text_splitters import (
     ITextSplitter,
     LangchainTextSplitter,
@@ -15,7 +11,15 @@ from agent.searches import (
     TavilyWebSearch,
     IWebSearch,
 )
-from agent.chats import IChatModel, OpenAIChatModel
+from anthropic import AsyncAnthropic
+from openai import AsyncAzureOpenAI
+
+from agent.chats import IChatModel
+from agent.chats.impl.anthropic import AnthropicProvider
+from agent.chats.impl.openai import OpenAIProvider
+from agent.rag.chats.deps import ChatDeps
+from agent.rag.chats.strategies.agentic import AgenticChatStrategy
+from agent.rag.chats.strategies.agentic.v1.core import AgenticSettings
 from agent.embeddings import IEmbeddingModel, SmallOpenAIEmbeddingModel
 from agent.extractors import (
     IExtractor,
@@ -41,26 +45,6 @@ class BaseProvider[NameT, ReturnT](ABC):
             raise ValueError(f"Unknown model name: {model_name}")
 
         return self.mp_name_init[model_name]()
-
-
-class ChatProvider(BaseProvider[Literal["azure_openai"], IChatModel]):
-    def __init__(self, env: Env) -> None:
-        self.env = env
-
-    @property
-    def mp_name_init(self) -> dict[Literal["azure_openai"], Callable[[], IChatModel]]:
-        return {
-            "azure_openai": self.init_azure_openai,
-        }
-
-    @lru_cache(maxsize=1)
-    def init_azure_openai(self) -> OpenAIChatModel:
-        return OpenAIChatModel(
-            api_key=self.env.openai_api_key,
-            api_version=self.env.openai_api_version,
-            azure_endpoint=self.env.openai_azure_endpoint,
-            deployment_name=self.env.openai_chat_deployment_name,
-        )
 
 
 class EmbeddingProvider(BaseProvider[Literal["azure_openai"], IEmbeddingModel]):
@@ -176,11 +160,8 @@ class WebSearchProvider(
         )
 
 
-class ProgramProvider(
-    BaseProvider[
-        Literal["booking_operation"],
-        IProgram[Any],
-    ]
+class StreamProvider(
+    BaseProvider[Literal["azure_openai", "anthropic"], IChatModel],
 ):
     def __init__(self, env: Env) -> None:
         self.env = env
@@ -188,21 +169,52 @@ class ProgramProvider(
     @property
     def mp_name_init(
         self,
-    ) -> dict[
-        Literal["booking_operation"],
-        Callable[[], IProgram[Any]],
-    ]:
+    ) -> dict[Literal["azure_openai", "anthropic"], Callable[[], IChatModel]]:
         return {
-            "booking_operation": self.init_booking_operation_program,
+            "azure_openai": self.init_azure_openai,
+            "anthropic": self.init_anthropic,
         }
 
     @lru_cache(maxsize=1)
-    def init_booking_operation_program(self) -> BookingOperationProgram:
-        return BookingOperationProgram(
+    def init_azure_openai(self) -> OpenAIProvider:
+        client = AsyncAzureOpenAI(
             api_key=self.env.openai_api_key,
             api_version=self.env.openai_api_version,
             azure_endpoint=self.env.openai_azure_endpoint,
-            deployment_name=self.env.openai_chat_deployment_name,
+        )
+        return OpenAIProvider(client)
+
+    @lru_cache(maxsize=1)
+    def init_anthropic(self) -> AnthropicProvider:
+        client = AsyncAnthropic(
+            api_key=self.env.anthropic_api_key,
+        )
+        return AnthropicProvider(client)
+
+
+class AgenticStrategyProvider:
+    def __init__(
+        self,
+        env: Env,
+        vectordb_provider: VectorDBProvider,
+        embedding_provider: EmbeddingProvider,
+        stream_provider: StreamProvider,
+    ) -> None:
+        self.env = env
+        self.vectordb_provider = vectordb_provider
+        self.embedding_provider = embedding_provider
+        self.stream_provider = stream_provider
+
+    def get(self) -> AgenticChatStrategy:
+        return AgenticChatStrategy(
+            deps=ChatDeps(
+                vectordb=self.vectordb_provider.get("milvus"),
+                embedding_model=self.embedding_provider.get("azure_openai"),
+                stream_provider=self.stream_provider.get("azure_openai"),
+            ),
+            settings=AgenticSettings(
+                model_name=self.env.openai_chat_deployment_name,
+            ),
         )
 
 
@@ -210,10 +222,6 @@ class Container:
     def __init__(self, env: Env | None = None, storage: Storage | None = None) -> None:
         self.env = env or Env()
         self.storage = storage or Storage(imagedir=Path("images"))
-
-    @cached_property
-    def chats(self) -> ChatProvider:
-        return ChatProvider(self.env)
 
     @cached_property
     def embeddings(self) -> EmbeddingProvider:
@@ -240,5 +248,14 @@ class Container:
         return TextSplitterProvider(self.env)
 
     @cached_property
-    def programs(self) -> ProgramProvider:
-        return ProgramProvider(self.env)
+    def streams(self) -> StreamProvider:
+        return StreamProvider(self.env)
+
+    @cached_property
+    def agentic(self) -> AgenticStrategyProvider:
+        return AgenticStrategyProvider(
+            self.env,
+            self.vectordbs,
+            self.embeddings,
+            self.streams,
+        )

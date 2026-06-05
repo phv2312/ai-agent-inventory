@@ -26,7 +26,7 @@ class OpenAIEmbeddingModel[EmbeddingT: BaseEmbedding]:
         self.deployment_name = deployment_name
         self.batch_size = batch_size
 
-    async def aembedding(
+    async def embed(
         self,
         queries: list[str],
         *_: Any,

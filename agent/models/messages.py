@@ -2,8 +2,12 @@ import base64
 from collections.abc import Sequence
 from enum import StrEnum, auto
 from pathlib import Path
-from typing import Annotated, Literal, cast
-from pydantic import BaseModel, BeforeValidator, Discriminator, Field, RootModel
+from typing import Annotated, Literal, Self, cast
+from uuid import uuid4
+
+from pydantic import BaseModel, BeforeValidator, Discriminator, Field
+
+from agent.typedefs import ListModel
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from openai.types.chat.chat_completion_message_tool_call import (
@@ -59,15 +63,30 @@ MessageContent = Annotated[ImageContent | TextContent, Discriminator("type")]
 class BaseMessage(BaseModel):
     role: MessageRole
     content: str | Annotated[list[MessageContent], Field(min_length=1)]
+    id: str = Field(default_factory=lambda: str(uuid4()))
 
 
 class UserMessage(BaseMessage):
     role: Literal[MessageRole.user] = MessageRole.user
 
+    @classmethod
+    def from_content(
+        cls,
+        content: str,
+    ) -> Self:
+        return cls(content=content, role=MessageRole.user)
+
 
 class AssistantMessage(BaseMessage):
     role: Literal[MessageRole.assistant] = MessageRole.assistant
     tool_calls: list[ChatCompletionMessageToolCall | ChoiceDeltaToolCall] | None = None
+
+    @classmethod
+    def from_content(
+        cls,
+        content: str,
+    ) -> Self:
+        return cls(content=content, role=MessageRole.assistant)
 
 
 class SystemMessage(BaseMessage):
@@ -88,7 +107,7 @@ Message = Annotated[
 ]
 
 
-class Messages(RootModel[list[Message]]):
+class Messages(ListModel[Message]):
     @classmethod
     def from_conversation(
         cls,

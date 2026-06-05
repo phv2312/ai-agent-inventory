@@ -8,8 +8,9 @@ dependencies = [
     "crawl4ai>=0.6.2,<0.7.0",
     "duckduckgo-search>=8.0.1,<8.1.0",
     "langchain-text-splitters>=0.3.8,<0.4.0",
-    "langgraph>=0.4.1,<0.5.0",
-    "openai>=1.76.2,<1.77.0",
+    "openai>=2.30.0,<2.31.0",
+    "rich>=13.9.4,<14.0.0",
+    "structlog>=25.4.0,<26.0.0",
     "pip>=25.1,<26.0",
     "pydantic>=2.11.4,<2.12.0",
     "pydantic-settings>=2.9.1,<2.10.0",
@@ -18,10 +19,12 @@ dependencies = [
     "streamlit>=1.45.0",
     "tavily-python>=0.7.0,<0.8.0",
     "tenacity>=9.1.2,<9.2.0",
+    "anthropic>=0.79.0,<0.80",
 ]
 
 [dependency-groups]
 dev = [
+    "mypy>=2.1.0",
     "pre-commit>=4.2.0",
 ]
 

@@ -19,13 +19,14 @@ source ./venv/bin/activate
 
 | Component | Description | Implementations |
 |:----------|:------------|:----------------|
-| chats | Contains implementations of chat model interfaces and utilities for interacting with LLM chat models like ChatGPT | - OpenAI chat |
+| chats | Contains implementations of chat model interfaces and utilities for interacting with LLM chat models like ChatGPT | - OpenAI chat<br>- Anthropic chat |
 | embeddings | Houses embedding model implementations for transforming text into vector representations | - OpenAI embeddings |
 | extractors | Contains utilities for extracting information and data from various sources | - PDF Extractor |
-| graphs | Implements workflow graphs and node-based processing systems for AI agent operations | - Nodes & Graph for Booking assistant |
-| models | Contains Pydantic data models and schemas that define the structure of data used throughout the system | - Message, Stream event |
-| programs | Houses LLM programs that generate structured data using Pydantic models | - Booking operations |
-| prompts | Contains templates and configurations for LLM chat prompts | - Booking prompts |
+| models | Contains Pydantic data models and schemas that define the structure of data used throughout the system | - Message, Provider stream events |
+| rag | Agentic RAG chat strategies with tool-driven retrieval | - AgenticChatStrategy (ReAct + Responses API) |
+| structs | Application-level stream event wrappers for UI consumers | - StreamChatData, StreamReasoningData |
+| programs | Houses LLM programs that generate structured data using Pydantic models | - Base program framework |
+| prompts | Contains templates and configurations for LLM chat prompts | - Agentic prompts |
 | searches | Implements search functionality, likely including vector and semantic search capabilities | - Tavily search<br>- DuckDuckGo search |
 | storages | Contains storage implementations, possibly including vector database integrations | - Local storage<br>- Milvus |
 | text_splitters | Implements text chunking and splitting utilities for processing large text documents | - Langchain text splitter |

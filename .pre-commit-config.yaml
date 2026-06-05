@@ -19,7 +19,6 @@ repos:
           - pymilvus
           - tavily-python
           - openai
-          - langgraph
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.9
     hooks:

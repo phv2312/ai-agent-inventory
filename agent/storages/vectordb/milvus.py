@@ -166,6 +166,34 @@ class Milvus:
             )
         logger.info(f"Added {len(chunks)} chunks to collection {self.collection_name}")
 
+    async def retrieve_by_filter(
+        self,
+        filtered_dict: dict[str, list[str | int]],
+        *,
+        limit: int = 1000,
+    ) -> ScoredChunks:
+        filter_expr = " and ".join(
+            [f"{key} in {str(value)}" for key, value in filtered_dict.items()],
+        )
+        records = await self.async_client.query(
+            collection_name=self.collection_name,
+            filter=filter_expr,
+            output_fields=["*"],
+            limit=limit,
+        )
+        return ScoredChunks(
+            [
+                self.config.parse_record(
+                    {
+                        "id": record[self.config.fieldname_id],
+                        "distance": 0.0,
+                        "entity": record,
+                    },
+                )
+                for record in records
+            ],
+        )
+
     async def search(
         self,
         query: BaseEmbedding,
