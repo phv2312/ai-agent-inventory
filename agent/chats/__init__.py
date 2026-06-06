@@ -1,7 +1,8 @@
+from .exc import ChatModelError, InvalidChatResponseError
 from .interface import IChatModel
-from .impl.openai import OpenAIChatModel
 
 __all__ = [
+    "ChatModelError",
     "IChatModel",
-    "OpenAIChatModel",
+    "InvalidChatResponseError",
 ]

@@ -1,31 +1,66 @@
 # AI Agent Inventory
 
-An AI-powered agent inventory, include various components help build AI Agentic application effectively
+An AI-powered agent inventory — modular components for building production-grade Agentic RAG applications.
 
 [![pre-commit](https://github.com/phv2312/ai-agent-inventory/actions/workflows/precommit.yaml/badge.svg)](https://github.com/phv2312/ai-agent-inventory/actions/workflows/precommit.yaml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 ![Static Badge](https://img.shields.io/badge/type%20checked-mypy-039dfc)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 
+---
+
+## Demo
+
+### Internal KB + Web Search
+
+![Internal KB and web search](assets/screenshots/internal-kb-websearch.png)
+
+The agent automatically routes queries between the indexed knowledge base and live web search, citing exact source chunks inline.
+
+### Inline Visuals
+
+![Inline visual generation](assets/screenshots/inline-visual.gif)
+
+When the answer benefits from a chart or diagram, the agent generates an interactive widget rendered directly in the chat panel.
+
+---
+
 ## Installation
 
-```
+```bash
 pip install uv
 uv sync
 source ./venv/bin/activate
 ```
 
+---
+
 ## Components
 
 | Component | Description | Implementations |
 |:----------|:------------|:----------------|
-| chats | Contains implementations of chat model interfaces and utilities for interacting with LLM chat models like ChatGPT | - OpenAI chat |
-| embeddings | Houses embedding model implementations for transforming text into vector representations | - OpenAI embeddings |
-| extractors | Contains utilities for extracting information and data from various sources | - PDF Extractor |
-| graphs | Implements workflow graphs and node-based processing systems for AI agent operations | - Nodes & Graph for Booking assistant |
-| models | Contains Pydantic data models and schemas that define the structure of data used throughout the system | - Message, Stream event |
-| programs | Houses LLM programs that generate structured data using Pydantic models | - Booking operations |
-| prompts | Contains templates and configurations for LLM chat prompts | - Booking prompts |
-| searches | Implements search functionality, likely including vector and semantic search capabilities | - Tavily search<br>- DuckDuckGo search |
-| storages | Contains storage implementations, possibly including vector database integrations | - Local storage<br>- Milvus |
-| text_splitters | Implements text chunking and splitting utilities for processing large text documents | - Langchain text splitter |
+| chats | Chat model interfaces for interacting with LLM providers | - OpenAI chat<br>- Anthropic chat |
+| embeddings | Embedding model implementations for vector representations | - OpenAI embeddings |
+| extractors | Utilities for extracting information from various sources | - PDF Extractor |
+| models | Pydantic data models and schemas used throughout the system | - Message, Provider stream events |
+| rag | Agentic RAG chat strategies with tool-driven retrieval | - AgenticChatStrategy (ReAct + Responses API) |
+| programs | LLM programs that generate structured data using Pydantic models | - Base program framework |
+| prompts | Templates and configurations for LLM chat prompts | - Agentic prompts |
+| searches | Search functionality including vector and semantic search | - Tavily search<br>- DuckDuckGo search |
+| storages | Storage implementations including vector database integrations | - Local storage<br>- Milvus |
+| textsplitters | Text chunking and splitting utilities for large documents | - Langchain text splitter |
+
+---
+
+## Roadmap
+
+| Status | Feature |
+|:------:|:--------|
+| ✅ | Agentic-RAG implementation, demo with kotaemon-inspired theme |
+| ✅ | Built-in tools: internal search, web search, reflection |
+| ✅ | Inline visual generation integrated into the chat demo |
+| 🔲 | Agent skills — sandbox vs. local machine execution (decision pending) |
+| 🔲 | Agent memory — define supported memory categories |
+| 🔲 | Enhanced extractor — split documents into typed elements (table, section, figure) |
+| 🔲 | Hybrid search support |
+| 🔲 | Multimodal retrieval |

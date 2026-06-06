@@ -1,22 +1,36 @@
+from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
-from typing import Any, Protocol
+from typing import TYPE_CHECKING
 
-from ..models.messages import AssistantMessage, Messages
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from agent.models.streams import (
+        ChatRequest,
+        CompletedResponse,
+        StreamEvent,
+    )
 
 
-class IChatModel(Protocol):
-    async def achat(
+class IChatModel(ABC):
+    @abstractmethod
+    def stream(
         self,
-        messages: Messages,
-        *_: Any,
-        **__: Any,
-    ) -> AssistantMessage: ...
+        request: "ChatRequest",
+    ) -> AsyncGenerator["StreamEvent", None]:
+        raise NotImplementedError
 
-    # Due to the bugs of mypy, we should define as def instead of async def
-    # https://github.com/python/mypy/issues/12662
-    def astream(
+    @abstractmethod
+    async def chat(
         self,
-        messages: Messages,
-        *_: Any,
-        **__: Any,
-    ) -> AsyncGenerator[AssistantMessage, None]: ...
+        request: "ChatRequest",
+    ) -> "CompletedResponse":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def parse[ResponseFormatT: BaseModel](
+        self,
+        request: "ChatRequest",
+        response_format: type[ResponseFormatT],
+    ) -> ResponseFormatT:
+        raise NotImplementedError

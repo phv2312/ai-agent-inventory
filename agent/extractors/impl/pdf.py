@@ -7,8 +7,8 @@ import pymupdf
 from pydantic import BaseModel
 
 from agent.batched import Batched
-from agent.storages.local import Storage
-from agent.text_splitters import (
+from agent.storages.file import FileStorage
+from agent.textsplitters import (
     ITextSplitter,
     TextSplitterArguments,
 )
@@ -17,7 +17,7 @@ from agent.models.document import Chunk, Document, DocumentMetadata
 
 class PDFExtractorSettings(BaseModel):
     text_splitter_arguments: TextSplitterArguments = TextSplitterArguments(
-        chunk_size=1024,
+        chunk_size=4096,
         chunk_overlap=256,
         encoding_model_name="gpt-4o",
     )
@@ -28,7 +28,7 @@ class PDFExtractorSettings(BaseModel):
 class PDFExtractor:
     def __init__(
         self,
-        storage: Storage,
+        storage: FileStorage,
         text_splitter: ITextSplitter,
         settings: PDFExtractorSettings | None = None,
         executor_split_tokens: Executor | None = None,
@@ -40,7 +40,9 @@ class PDFExtractor:
             max_workers=self.settings.number_executor_split_tokens
         )
 
-    async def aextract(self, filepath: Path, *_: Any, **__: Any) -> Document:
+    async def aextract(
+        self, filepath: Path, fileid: str, *_: Any, **__: Any
+    ) -> Document:
         pages_content: list[str] = []
         pages_imagepath: list[str] = []
         with pymupdf.Document(filepath) as document:
@@ -79,9 +81,10 @@ class PDFExtractor:
                     Chunk(
                         text=splitted_text,
                         metadata=DocumentMetadata(
-                            filename=str(filepath),
+                            filename=str(filepath.name),
                             pageidx=pageidx,
                             rendered_page_path=imagepath,
+                            fileid=fileid,
                         ),
                     )
                     for splitted_text in splitted_texts
@@ -89,6 +92,7 @@ class PDFExtractor:
             )
 
         return Document(
-            filename=str(filepath),
+            filename=str(filepath.name),
+            fileid=fileid,
             chunks=chunks,
         )

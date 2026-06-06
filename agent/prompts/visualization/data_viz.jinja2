@@ -1,0 +1,30 @@
+# Data visualization (dashboards)
+
+The `data_viz` module is for **quantitative storytelling** that mixes charts, KPI tiles, and layout.
+
+## Host viewport (inline widget)
+
+The widget runs in a **dark, fixed-height iframe** (~**520px** max height, **70vh** cap, full width of the assistant column). Design so **KPI row + one or two charts + slim legend** fit without forcing the host to resize. Prefer **scroll inside your root** (`overflow-y: auto` on a wrapper) only for dense tables, not the default. Use **CSS variables** for chrome (`--color-background-*`, `--color-text-*`) so tiles and labels match the host shell.
+
+## What you get when you request `data_viz`
+
+The host loads **this file** plus the **chart** and **mockup** guideline documents. Treat them as one toolkit:
+
+- **Chart.js** patterns, canvas sizing, and legend customization (`guidelines-chart.md`).
+- **Layout, cards, grids, forms** (`guidelines-mockup.md`).
+
+## Composition recipe
+
+1. **Top row** — 2–4 KPI tiles (`mockup` metric pattern) using CSS variables.
+2. **Middle** — one or two charts with explicit wrapper heights and CDN `onload` hooks (`chart` patterns).
+3. **Optional footer** — compact table or comparison chips if space allows (avoid wide sparse tables).
+
+## When *not* to use `data_viz`
+
+- A **single** chart with no layout chrome → request `chart` only.
+- A **non-quantitative** SVG explanation → `diagram` instead.
+- A **toy interactive** with sliders but little charting → `interactive` instead.
+
+## Theming
+
+Charts may need explicit hex colors for series; **surrounding layout** (cards, legends, copy) should use **CSS variables** so the widget matches the host **dark** shell (`--color-background-primary` / `--color-text-primary`, etc.).

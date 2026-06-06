@@ -6,27 +6,34 @@ class OpenAISettings(BaseSettings):
         case_sensitive=False,
     )
 
-    openai_api_key: str
-    openai_azure_endpoint: str
-    openai_api_version: str
+    OPENAI_API_KEY: str
+    OPENAI_AZURE_ENDPOINT: str
+    OPENAI_API_VERSION: str
 
 
 class OpenAIChatSettings(OpenAISettings):
-    openai_chat_deployment_name: str
+    OPENAI_CHAT_DEPLOYMENT_NAME: str
 
 
 class OpenAIEmbeddingSettings(OpenAISettings):
-    openai_embedding_deployment_name: str
+    OPENAI_EMBEDDING_DEPLOYMENT_NAME: str
 
 
 class MilvusSettings(BaseSettings):
-    milvus_collection_name: str
-    milvus_uri: str
-    milvus_token: str
+    MILVUS_DB_COLLECTION_NAME: str
+    MILVUS_DB_URI: str
 
 
 class TavilyWebSearchSettings(BaseSettings):
-    tavily_api_key: str
+    TAVILY_API_KEY: str
+
+
+class AnthropicSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        case_sensitive=False,
+    )
+
+    ANTHROPIC_API_KEY: str = ""
 
 
 class Env(
@@ -34,6 +41,7 @@ class Env(
     OpenAIEmbeddingSettings,
     MilvusSettings,
     TavilyWebSearchSettings,
+    AnthropicSettings,
     BaseSettings,
 ):
     model_config = SettingsConfigDict(case_sensitive=False)

@@ -4,7 +4,7 @@ from ..models.embeddings import Embedding
 
 
 class IEmbeddingModel(Protocol):
-    async def aembedding(
+    async def embed(
         self,
         queries: list[str],
         *_: Any,

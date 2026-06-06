@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Final, Literal
+from typing import Final
 
 from jinja2 import (
     Environment,
@@ -16,8 +16,8 @@ class Jinja2PromptSettings(BaseModel):
     lstrip_blocks: bool = True
 
 
-class Jinja2Prompts[TemplateT: str]:
-    TEMPLATE_NAME: Final[str] = "{}.md"
+class Jinja2Prompts:
+    TEMPLATE_NAME: Final[str] = "{}.jinja2"
 
     def __init__(
         self,
@@ -33,7 +33,7 @@ class Jinja2Prompts[TemplateT: str]:
             lstrip_blocks=self.settings.lstrip_blocks,
         )
 
-    def get(self, template_name: TemplateT) -> Template:
+    def get(self, template_name: str) -> Template:
         try:
             return self.env.get_template(
                 self.TEMPLATE_NAME.format(template_name),
@@ -44,14 +44,10 @@ class Jinja2Prompts[TemplateT: str]:
             ) from err
 
 
-class BookingJinja2Prompts(
-    Jinja2Prompts[Literal["coordinator", "faq", "operation", "operation_react"]]
-): ...
-
-
 class PromptsFactory:
-    @staticmethod
-    def booking() -> BookingJinja2Prompts:
-        return BookingJinja2Prompts(
-            promptdir=Path(__file__).parent / "booking",
-        )
+    AGENTIC = Jinja2Prompts(promptdir=Path(__file__).parent / "agentic")
+    PROGRAMS = Jinja2Prompts(promptdir=Path(__file__).parent / "programs")
+    TOOLS = Jinja2Prompts(promptdir=Path(__file__).parent / "tools")
+    VISUALIZATION = Jinja2Prompts(
+        promptdir=Path(__file__).parent / "visualization",
+    )

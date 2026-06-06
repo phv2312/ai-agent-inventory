@@ -1,49 +1,30 @@
-from collections.abc import Sequence
-from typing import cast
+from typing import Final
 
-from openai import AsyncAzureOpenAI
 from pydantic import BaseModel
 
-from agent.models.messages import AssistantMessage, Messages, SystemMessage, UserMessage
-from .exc import ParsedResultError
+from agent.chats.interface import IChatModel
+from agent.models.messages import UserMessage
+from agent.models.streams import ChatRequest
 
 
 class BaseProgram[ModelOutT: BaseModel]:
-    ModelOutCls: type[BaseModel]
+    ModelOutCls: type[ModelOutT]
+    DEFAULT_TEMPERATURE: Final[float] = 0.0
 
-    def __init__(
-        self,
-        api_key: str,
-        api_version: str,
-        azure_endpoint: str,
-        deployment_name: str,
-    ) -> None:
-        self.openai = AsyncAzureOpenAI(
-            api_key=api_key,
-            api_version=api_version,
-            azure_endpoint=azure_endpoint,
-        )
-        self.deployment_name = deployment_name
+    def __init__(self, chat_model: IChatModel, model_name: str) -> None:
+        self.chat_model = chat_model
+        self.model_name = model_name
 
     async def aprocess(
         self,
-        message: UserMessage | None = None,
-        system_message: SystemMessage | None = None,
-        history: Sequence[UserMessage | AssistantMessage] | None = None,
+        message: UserMessage,
     ) -> ModelOutT:
-        messages = Messages.from_conversation(
-            message=message,
-            system_message=system_message,
-            history=history,
-        ).as_openai_list()
-
-        completion = await self.openai.beta.chat.completions.parse(
-            model=self.deployment_name,
-            messages=messages,
+        request = ChatRequest(
+            model=self.model_name,
+            messages=[message],
+            temperature=self.DEFAULT_TEMPERATURE,
+        )
+        return await self.chat_model.parse(
+            request=request,
             response_format=self.ModelOutCls,
         )
-
-        first_choice = completion.choices[0].message
-        if first_choice.refusal:
-            raise ParsedResultError(first_choice.refusal)
-        return cast(ModelOutT, first_choice.parsed)
