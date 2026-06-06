@@ -13,6 +13,7 @@ from agent.models.streams import (
     ErrorEvent,
     FunctionCallOutput,
     FunctionCallStartEvent,
+    FunctionCallTextDeltaEvent,
     MessageDoneEvent,
     StreamEvent,
     TextDeltaEvent,
@@ -115,7 +116,10 @@ class ReAct:
 
             async for output_event in actor.act(parsed_function_call):
                 if isinstance(output_event, str):
-                    yield TextDeltaEvent(content=output_event)
+                    yield FunctionCallTextDeltaEvent(
+                        id=function_call.call_id,
+                        delta=output_event,
+                    )
                 elif isinstance(output_event, FunctionCallOutput):
                     self.request.messages.append(output_event)
                 else:

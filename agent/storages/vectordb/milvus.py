@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 from enum import StrEnum
+from functools import cached_property
 import logging
 from typing import Any, TypedDict
-from uuid import UUID
+from uuid import UUID, uuid4
 from pydantic import Field, BaseModel
 from pymilvus import (
     AsyncMilvusClient,
@@ -124,13 +125,13 @@ class Milvus:
 
         self.create_collection()
 
-    @property
+    @cached_property
     def async_client(self) -> AsyncMilvusClient:
-        return AsyncMilvusClient(uri=self.uri, token=self.token)
+        return AsyncMilvusClient(uri=self.uri, token=self.token, alias=str(uuid4()))
 
-    @property
+    @cached_property
     def client(self) -> MilvusClient:
-        return MilvusClient(uri=self.uri, token=self.token)
+        return MilvusClient(uri=self.uri, token=self.token, alias=str(uuid4()))
 
     def create_collection(self) -> None:
         if self.client.has_collection(self.collection_name):
@@ -221,3 +222,20 @@ class Milvus:
         )
 
         return scored_chunks.sort().limit(top_k)
+
+    async def delete_by_filter(
+        self,
+        filtered_dict: dict[str, list[str | int]],
+    ) -> None:
+        filter_expr = " and ".join(
+            [f"{key} in {str(value)}" for key, value in filtered_dict.items()],
+        )
+        await self.async_client.delete(
+            collection_name=self.collection_name,
+            filter=filter_expr,
+        )
+        logger.info(
+            "Deleted chunks from collection %s with filter %s",
+            self.collection_name,
+            filter_expr,
+        )

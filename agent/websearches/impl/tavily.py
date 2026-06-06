@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from tavily import TavilyClient
 
 from agent.models.document import ScoredChunk, ScoredChunks, Chunk, WebsearchMetdata
-from agent.text_splitters import ITextSplitter, TextSplitterArguments
+from agent.textsplitters import ITextSplitter, TextSplitterArguments
 
 logger = logging.getLogger(__name__)
 

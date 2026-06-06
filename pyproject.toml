@@ -14,12 +14,15 @@ dependencies = [
     "pip>=25.1,<26.0",
     "pydantic>=2.11.4,<2.12.0",
     "pydantic-settings>=2.9.1,<2.10.0",
-    "pymilvus>=2.5.8,<2.6.0",
+    "pymilvus[milvus-lite]>=2.6.0,<2.6.15",
+    "protobuf>=5.27.2,<6.0.0",
     "pymupdf>=1.25.5,<1.26.0",
     "streamlit>=1.45.0",
     "tavily-python>=0.7.0,<0.8.0",
     "tenacity>=9.1.2,<9.2.0",
     "anthropic>=0.79.0,<0.80",
+    "gradio>=5.29.0,<6.0.0",
+    "pandas>=2.2.3,<3.0.0",
 ]
 
 [dependency-groups]

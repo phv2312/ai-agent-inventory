@@ -17,7 +17,7 @@ class Jinja2PromptSettings(BaseModel):
 
 
 class Jinja2Prompts:
-    TEMPLATE_NAME: Final[str] = "{}.md"
+    TEMPLATE_NAME: Final[str] = "{}.jinja2"
 
     def __init__(
         self,
@@ -46,3 +46,8 @@ class Jinja2Prompts:
 
 class PromptsFactory:
     AGENTIC = Jinja2Prompts(promptdir=Path(__file__).parent / "agentic")
+    PROGRAMS = Jinja2Prompts(promptdir=Path(__file__).parent / "programs")
+    TOOLS = Jinja2Prompts(promptdir=Path(__file__).parent / "tools")
+    VISUALIZATION = Jinja2Prompts(
+        promptdir=Path(__file__).parent / "visualization",
+    )

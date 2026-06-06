@@ -6,12 +6,13 @@ from typing import Final
 import structlog
 from jinja2 import Template
 
-from agent.models.document import ScoredChunks
+from agent.models.document import DocumentMetadata, ScoredChunks
 from agent.models.messages import AssistantMessage, UserMessage
 from agent.models.streams import ChatRequest, StreamEvent, ToolDefinition
 from agent.orchestrators import ReAct
 from agent.prompts.core import PromptsFactory
 from agent.rag.chats.deps import ChatDeps
+from agent.storages.config import AnchorFields
 from agent.tools.acts.registry import ToolActsRegistry
 from agent.tools.schemas.registry import ToolSchemaRegistry
 
@@ -38,12 +39,13 @@ class Utils:
             return []
 
         scored_chunks = await self.deps.vectordb.retrieve_by_filter(
-            {"id": list(file_ids)},
+            {AnchorFields.FILE_ID: list(file_ids)},
         )
         doc_names: set[str] = set()
         for scored_chunk in scored_chunks.root:
-            metadata = scored_chunk.chunk.metadata.model_dump()
-            filename = metadata.get("filename")
+            filename: str | None = None
+            if isinstance(scored_chunk.chunk.metadata, DocumentMetadata):
+                filename = scored_chunk.chunk.metadata.filename
             if filename:
                 doc_names.add(str(filename))
         return list(doc_names)

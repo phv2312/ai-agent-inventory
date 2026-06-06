@@ -1,19 +1,28 @@
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, Self, cast
+from typing import Any, Self
 
 import structlog
 
 from agent.embeddings.interface import IEmbeddingModel
 from agent.models.streams import CustomFunctionCall
 from agent.storages.vectordb.milvus import Milvus
+from agent.prompts.core import PromptsFactory
 from agent.tools.acts.impl.search import SearchAct, SearchToolCall
 from agent.tools.acts.impl.think import ThinkAct, ThinkToolCall
+from agent.tools.acts.impl.visualize import (
+    VisualizeReadmeAct,
+    VisualizeReadmeToolCall,
+    VisualizeShowWidgetAct,
+    VisualizeShowWidgetToolCall,
+)
 from agent.tools.acts.models import BaseToolCall, IToolAct
 from agent.tools.schemas.registry import (
     SearchParameters,
     ThinkParameters,
     ToolNames,
+    VisualizeReadmeParameters,
+    VisualizeShowWidgetParameters,
 )
 
 logger = structlog.get_logger(__name__)
@@ -27,28 +36,38 @@ class ToolActsRegistry:
     top_k: int = field(default=10)
 
     def get(self, name: str) -> IToolAct[Any] | None:
-        mp_chat_tools: dict[ToolNames, type[IToolAct[Any]]] = {
-            ToolNames.THINK_TOOL: ThinkAct,
-            ToolNames.SEARCH_TOOL: SearchAct,
-        }
-
         match name:
             case ToolNames.THINK_TOOL:
-                return mp_chat_tools[ToolNames.THINK_TOOL]()
+                return ThinkAct()
             case ToolNames.SEARCH_TOOL:
                 if self.milvus is None or self.embedding_model is None:
                     raise ValueError(
                         "Milvus and embedding_model are required for search",
                     )
-                return cast(
-                    "type[SearchAct]",
-                    mp_chat_tools[ToolNames.SEARCH_TOOL],
-                )(
+                return SearchAct(
                     self.milvus,
                     self.embedding_model,
                     self.file_ids or [],
                     top_k=self.top_k,
                 )
+            case ToolNames.VISUALIZE_README_TOOL:
+                return VisualizeReadmeAct(
+                    readme_template=PromptsFactory.TOOLS.get(
+                        "visualize_readme",
+                    ),
+                    vis_templates={
+                        m: PromptsFactory.VISUALIZATION.get(m)
+                        for m in (
+                            "interactive",
+                            "chart",
+                            "diagram",
+                            "mockup",
+                            "art",
+                        )
+                    },
+                )
+            case ToolNames.VISUALIZE_SHOW_WIDGET_TOOL:
+                return VisualizeShowWidgetAct()
             case _:
                 return None
 
@@ -83,7 +102,23 @@ class ToolParser:
             case ToolNames.THINK_TOOL:
                 return ThinkToolCall(
                     id=self.id,
-                    params=ThinkParameters.model_validate_json(self.arguments),
+                    params=ThinkParameters.model_validate_json(
+                        self.arguments,
+                    ),
+                )
+            case ToolNames.VISUALIZE_README_TOOL:
+                return VisualizeReadmeToolCall(
+                    id=self.id,
+                    params=VisualizeReadmeParameters.model_validate_json(
+                        self.arguments,
+                    ),
+                )
+            case ToolNames.VISUALIZE_SHOW_WIDGET_TOOL:
+                return VisualizeShowWidgetToolCall(
+                    id=self.id,
+                    params=VisualizeShowWidgetParameters.model_validate_json(
+                        self.arguments,
+                    ),
                 )
             case _:
                 logger.warning("Unknown tool name", name=self.name)

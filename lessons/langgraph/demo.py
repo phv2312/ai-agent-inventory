@@ -11,10 +11,11 @@ from langgraph.graph.graph import CompiledGraph
 from langgraph.types import Command, interrupt, Send
 from langgraph.checkpoint.memory import MemorySaver
 
-from agent.chats.impl.openai import OpenAIChatModel
+from agent.chats import IChatModel
 from agent.container import Container
 from agent.env import Env
 from agent.models.messages import UserMessage
+from agent.models.streams import ChatRequest, StreamEventType
 from agent.programs.base import BaseProgram
 
 
@@ -99,16 +100,14 @@ class StoryProgram(BaseProgram[StoryOutput]):
 def get_outline_program() -> OutlineProgram:
     env = Env()
     return OutlineProgram(
-        api_key=env.openai_api_key,
-        api_version=env.openai_api_version,
-        azure_endpoint=env.openai_azure_endpoint,
-        deployment_name=env.openai_chat_deployment_name,
+        chat_model=Container().streams.get("azure_openai"),
+        model_name=env.OPENAI_CHAT_DEPLOYMENT_NAME,
     )
 
 
 @lru_cache(maxsize=1)
-def get_chat_model() -> OpenAIChatModel:
-    return Container().chats.get("azure_openai")
+def get_stream_provider() -> IChatModel:
+    return Container().streams.get("azure_openai")
 
 
 class StateInput(BaseModel):
@@ -210,18 +209,25 @@ async def write_story(
     node_input: StoryInput,
     writer: StreamWriter,
 ) -> dict[Literal["stories"], list[StoryOutput]]:
-    chat_model = get_chat_model()
+    streamer = get_stream_provider()
+    env = Env()
 
     full_content = ""
-    async for message in chat_model.astream(
-        message=UserMessage(
-            content=STORY_WRITER.render(
-                topic=node_input.topic,
+    request = ChatRequest(
+        model=env.OPENAI_CHAT_DEPLOYMENT_NAME,
+        messages=[
+            UserMessage(
+                content=STORY_WRITER.render(
+                    topic=node_input.topic,
+                ),
             ),
-        ),
-    ):
-        full_content += message.content
-        writer({"story-streaming": message.model_dump()})
+        ],
+    )
+    async for event in streamer.stream(request):
+        if event.type != StreamEventType.TEXT_DELTA:
+            continue
+        full_content += event.content
+        writer({"story-streaming": {"content": event.content}})
 
     return {"stories": [StoryOutput(content=full_content)]}
 

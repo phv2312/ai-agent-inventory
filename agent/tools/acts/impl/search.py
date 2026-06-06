@@ -5,6 +5,7 @@ from rich.panel import Panel
 
 from agent.embeddings.interface import IEmbeddingModel
 from agent.models.streams import FunctionCallOutput
+from agent.storages.config import AnchorFields
 from agent.storages.vectordb.milvus import Milvus
 from agent.tools.acts.models import BaseToolCall, IToolAct, ToolActResult
 from agent.tools.schemas.registry import SearchParameters, ToolNames
@@ -30,7 +31,7 @@ class SearchAct(IToolAct[SearchToolCall]):
         self.top_k = top_k
 
     async def act(self, tool_call: SearchToolCall) -> ToolActResult:
-        yield f"[Internal Search] {tool_call.params.query}\n\n"
+        yield f"Internal Search: {tool_call.params.query}\n\n"
 
         embeddings = await self.embedding_model.embed(
             [tool_call.params.query],
@@ -40,16 +41,11 @@ class SearchAct(IToolAct[SearchToolCall]):
 
         filtered_dict: dict[str, list[str | int]] | None = None
         if self.file_ids:
-            filtered_dict = {"id": list(self.file_ids)}
+            filtered_dict = {AnchorFields.FILE_ID: list(self.file_ids)}
         if tool_call.params.doc_names:
             filtered_dict = {
                 **(filtered_dict or {}),
-                "filename": list(tool_call.params.doc_names),
-            }
-        if tool_call.params.page_idxs:
-            filtered_dict = {
-                **(filtered_dict or {}),
-                "pageidx": list(tool_call.params.page_idxs),
+                AnchorFields.FILE_NAME: list(tool_call.params.doc_names),
             }
 
         scored_chunks = await self.milvus.search(

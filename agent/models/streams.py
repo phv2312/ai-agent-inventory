@@ -37,6 +37,7 @@ class StreamEventType(StrEnum):
     FUNCTION_CALL_START = auto()
     FUNCTION_CALL_ARGS_DELTA = auto()
     FUNCTION_CALL_ARGS_DONE = auto()
+    FUNCTION_CALL_TEXT_DELTA = auto()
 
     THINKING_DELTA = auto()
     THINKING_DONE = auto()
@@ -147,6 +148,14 @@ class FunctionCallStartEvent(BaseModel):
     item: FunctionCall
 
 
+class FunctionCallTextDeltaEvent(BaseModel):
+    type: Literal[StreamEventType.FUNCTION_CALL_TEXT_DELTA] = (
+        StreamEventType.FUNCTION_CALL_TEXT_DELTA
+    )
+    id: str
+    delta: str
+
+
 class FunctionCallArgsDeltaEvent(BaseModel):
     type: Literal[StreamEventType.FUNCTION_CALL_ARGS_DELTA] = (
         StreamEventType.FUNCTION_CALL_ARGS_DELTA
@@ -192,6 +201,7 @@ type StreamEvent = (
     TextDeltaEvent
     | TextDoneEvent
     | FunctionCallStartEvent
+    | FunctionCallTextDeltaEvent
     | FunctionCallArgsDeltaEvent
     | FunctionCallArgsDoneEvent
     | ThinkingDeltaEvent

@@ -3,9 +3,10 @@ from enum import StrEnum, auto
 from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
 from openai import BaseModel
-from pydantic import BeforeValidator, ConfigDict, Field, RootModel
+from pydantic import BeforeValidator, ConfigDict, Field
 
-from agent.text_splitters import ITextSplitter, TextSplitterArguments
+from agent.textsplitters import ITextSplitter, TextSplitterArguments
+from agent.typedefs import ListModel
 
 
 class Source(StrEnum):
@@ -14,15 +15,19 @@ class Source(StrEnum):
 
 
 class DocumentMetadata(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
+
+    # This one should mapped with storages/config.py::AnchorFields
     source: Literal[Source.DOCUMENT] = Source.DOCUMENT
     filename: Annotated[str, BeforeValidator(lambda _input: str(_input))]
     pageidx: int
     rendered_page_path: str
+    fileid: str
 
 
 class WebsearchMetdata(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
+
     source: Literal[Source.WEBSEARCH] = Source.WEBSEARCH
     url: str
 
@@ -54,10 +59,7 @@ class ScoredChunk(BaseModel):
         return self.chunk.metadata
 
 
-class ScoredChunks(RootModel[list[ScoredChunk]]):
-    def __len__(self) -> int:
-        return len(self.root)
-
+class ScoredChunks(ListModel[ScoredChunk]):
     async def filter_by_tokens(
         self,
         text_splitter: ITextSplitter,
@@ -108,4 +110,5 @@ class ScoredChunks(RootModel[list[ScoredChunk]]):
 
 class Document(BaseModel):
     filename: Annotated[str, BeforeValidator(lambda _input: str(_input))]
+    fileid: str
     chunks: list[Chunk]
