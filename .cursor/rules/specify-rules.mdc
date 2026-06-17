@@ -1,0 +1,25 @@
+---
+alwaysApply: true
+---
+
+<!-- SPECKIT START -->
+Active feature: Market Observability Platform (Stonitor)
+
+Read the implementation plan for architecture and project structure:
+`specs/002-market-observability/plan.md`
+
+Key constraints:
+- **All Stonitor code** colocated in `applications/stonitor/` (market/, ui/, alembic/, tests/)
+- Import shared `agent/` **only** for LLM: chats, programs, deps.Container, models.messages
+- Do NOT add `agent/market/` or repo-root alembic/tests for Stonitor
+- Market data: Vietnamese equities via `vnstock` v4 Unified UI
+- Persistence: SQLAlchemy 2.0 + Repository pattern in `applications/stonitor/market/repositories/`
+- Constitution: `.specify/memory/constitution.md` v1.0.0
+
+Related artifacts:
+- Spec: `specs/002-market-observability/spec.md`
+- Research: `specs/002-market-observability/research.md`
+- Data model: `specs/002-market-observability/data-model.md`
+- Contracts: `specs/002-market-observability/contracts/`
+- Quickstart: `specs/002-market-observability/quickstart.md`
+<!-- SPECKIT END -->

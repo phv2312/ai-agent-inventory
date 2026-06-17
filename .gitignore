@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment and secrets
+.env
+
+# Database
+*.db
+milvus-lite.db
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

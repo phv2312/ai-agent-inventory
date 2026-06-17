@@ -64,3 +64,27 @@ source ./venv/bin/activate
 | 🔲 | Enhanced extractor — split documents into typed elements (table, section, figure) |
 | 🔲 | Hybrid search support |
 | 🔲 | Multimodal retrieval |
+
+---
+
+## Stonitor (Market Observability)
+
+Vietnamese equity observability demo under `applications/stonitor/`. Data via [vnstock](https://vnstocks.com/docs) v4+.
+
+### Setup
+
+```bash
+uv sync
+
+# Add to .env (see .env.example)
+DATABASE_URL=postgresql://localhost/stonitor
+VNSTOCK_API_KEY=your_key_from_vnstocks.com
+OPENAI_API_KEY=...
+
+cd applications/stonitor && uv run alembic upgrade head
+uv run python -m applications.stonitor.app
+```
+
+Validation scenarios: `specs/002-market-observability/quickstart.md`.
+
+**Attribution**: Market data powered by vnstock (HOSE/HNX/UPCOM).

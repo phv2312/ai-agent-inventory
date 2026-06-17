@@ -5,6 +5,8 @@ globs: **/*.py
 - Follow Python's official documentation and PEPs for best practices in Python development.
 - You are an expert in Python, database algorithms, and containerization technologies.
 - Write simple and clear code; avoid unnecessary complexity.
+- Prefer full, descriptive names for variables, functions, and parameters; avoid abbreviations unless standard and unambiguous (e.g. `id`, `url`).
+- Each function should do one thing; split multi-step work into focused helpers and a thin orchestrator. Avoid `_and_` compound names like `compute_and_save` or `fetch_and_parse`.
 - Prefer list comprehensions for creating lists when appropriate.
 - Use try-except blocks to handle exceptions gracefully.
 - Limit the use of global variables to reduce side effects.

@@ -6,6 +6,7 @@ globs: **/*.py
 - Must use type hints for better code clarity and type checking, follow all mypy best practices.
 - Code style consistency using Ruff.
 - Always use python3.12+ syntax, especially the `type` syntax, the generic syntax, paramspec (`**P`) syntax, etc.
+- Do not add `from __future__ import annotations` to new files; use native 3.12+ type syntax instead. Do not introduce it when editing files that do not already have it.
 - Clearly separate between behavioral classes and data classes.
 - Use pydantic.BaseModel for data classes that need validation and serialization.
 - Use dataclasses.dataclass or pydantic.dataclasses.dataclass for simpler data classes.

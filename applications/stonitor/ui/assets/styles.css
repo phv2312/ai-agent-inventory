@@ -1,0 +1,7 @@
+/* Stonitor — allow <mark> and raw HTML inside Markdown components */
+.stonitor-mark-panel mark {
+  background: #bbf7d0;
+  padding: 0 0.2em;
+  border-radius: 3px;
+  color: red;
+}
