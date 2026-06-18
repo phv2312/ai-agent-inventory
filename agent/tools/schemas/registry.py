@@ -13,6 +13,7 @@ from agent.models.streams import (
 class ToolNames(StrEnum):
     THINK_TOOL = "think_tool"
     SEARCH_TOOL = "search_tool"
+    INLINE_CITATIONS_TOOL = "inline_citations_tool"
     WEB_SEARCH_TOOL = "web_search_tool"
     VISUALIZE_SHOW_WIDGET_TOOL = "visualize_show_widget"
     VISUALIZE_README_TOOL = "visualize_read_me"
@@ -98,6 +99,32 @@ class VisualizeReadmeParameters(BaseToolParameters):
     )
 
 
+class InlineCitationItem(BaseToolParameters):
+    chunk_id: str = Field(
+        ...,
+        description="Chunk-ID returned by search_tool.",
+    )
+    snippets: list[str] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Exact-copy spans from that chunk's body, copied "
+            "character-for-character from search results."
+        ),
+    )
+
+
+class InlineCitationsParameters(BaseToolParameters):
+    citations: list[InlineCitationItem] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Rows to validate: each chunk_id with exact-copy snippets "
+            "from internal search results."
+        ),
+    )
+
+
 class ToolDescriptionArgs:
     THINK_TOOL: str = """
         Reflect on the search results and decide whether to continue
@@ -112,6 +139,15 @@ class ToolDescriptionArgs:
         Retrieve information from the internal knowledge base.
         For every query, you MUST perform at least one internal search
         call before escalating to web search.
+    """
+
+    INLINE_CITATIONS_TOOL: str = """
+        IMPORTANT: call this tool RIGHT BEFORE THE FINAL ANSWER.
+        `search_tool` must be called before this tool.
+        Internal KB only. Submit chunk_id values from `search_tool`
+        together with snippets copied character-for-character from that
+        chunk's body. The host validates each snippet against the chunk
+        text and highlights matching spans in the evidence panel.
     """
 
     VISUALIZE_SHOW_WIDGET_TOOL: str = (
@@ -149,6 +185,11 @@ class ToolSchemaRegistry:
             description=ToolDescriptionArgs.SEARCH_TOOL,
             input_schema=SearchParameters.model_json_schema(),
         ),
+        ToolNames.INLINE_CITATIONS_TOOL: FunctionCallDefinition(
+            name=ToolNames.INLINE_CITATIONS_TOOL,
+            description=ToolDescriptionArgs.INLINE_CITATIONS_TOOL,
+            input_schema=InlineCitationsParameters.model_json_schema(),
+        ),
         ToolNames.WEB_SEARCH_TOOL: WebSearchToolDefinition(
             search_context_size="high",
         ),
@@ -181,6 +222,9 @@ class ToolSchemaRegistry:
             tools = [
                 *tools,
                 ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.SEARCH_TOOL],
+                ToolSchemaRegistry.MP_NAME_TOOLS[
+                    ToolNames.INLINE_CITATIONS_TOOL
+                ],
                 ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.THINK_TOOL],
             ]
 

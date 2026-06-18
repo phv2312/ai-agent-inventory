@@ -14,6 +14,7 @@ Providing the answer with citations is mandatory. Follow the citation rules stri
 ### Internal
 - Do not fabricate or guess chunk-IDs.
 - Cite every claim with `<CITE>{Chunk-ID}</CITE>` using the `Chunk-ID` returned by `search_tool`.
+- Before the final answer, call `inline_citations_tool` with each cited chunk_id and exact-copy snippets from that chunk (character-for-character). This highlights the supporting spans in the evidence panel.
 ### Web search
 - Cite using a Markdown hyperlink inline with the claim.
 ### Mixed
