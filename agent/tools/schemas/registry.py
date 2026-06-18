@@ -222,9 +222,7 @@ class ToolSchemaRegistry:
             tools = [
                 *tools,
                 ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.SEARCH_TOOL],
-                ToolSchemaRegistry.MP_NAME_TOOLS[
-                    ToolNames.INLINE_CITATIONS_TOOL
-                ],
+                ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.INLINE_CITATIONS_TOOL],
                 ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.THINK_TOOL],
             ]
 

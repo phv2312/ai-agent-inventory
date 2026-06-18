@@ -10,9 +10,7 @@ from agent.tools.schemas.registry import InlineCitationsParameters, ToolNames
 
 
 class InlineCitationsToolCall(BaseToolCall[InlineCitationsParameters]):
-    name: Literal[ToolNames.INLINE_CITATIONS_TOOL] = (
-        ToolNames.INLINE_CITATIONS_TOOL
-    )
+    name: Literal[ToolNames.INLINE_CITATIONS_TOOL] = ToolNames.INLINE_CITATIONS_TOOL
 
 
 class InlineCitationsAct(IToolAct[InlineCitationsToolCall]):
@@ -20,10 +18,7 @@ class InlineCitationsAct(IToolAct[InlineCitationsToolCall]):
         self.milvus = milvus
 
     async def act(self, tool_call: InlineCitationsToolCall) -> ToolActResult:
-        yield (
-            f"Validating {len(tool_call.params.citations)} inline "
-            "citation(s)\n\n"
-        )
+        yield (f"Validating {len(tool_call.params.citations)} inline citation(s)\n\n")
 
         validated: list[dict[str, object]] = []
         rejected: list[dict[str, str]] = []
@@ -55,8 +50,7 @@ class InlineCitationsAct(IToolAct[InlineCitationsToolCall]):
                         {
                             "chunk_id": chunk_id,
                             "reason": (
-                                "snippet not found in chunk text: "
-                                f"{quote[:80]}"
+                                f"snippet not found in chunk text: {quote[:80]}"
                             ),
                         },
                     )

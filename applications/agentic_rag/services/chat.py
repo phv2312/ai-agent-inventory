@@ -4,7 +4,7 @@ import html
 import re
 from collections.abc import AsyncGenerator
 
-from agent.citations import apply_snippet_highlights, mp_chunk_id_snippets_from_items
+from agent.citations import mp_chunk_id_snippets_from_items
 from agent.citations.inline import render_highlighted_body
 from agent.deps import Container, VectorDBModel
 from agent.models.document import DocumentMetadata, ScoredChunk
