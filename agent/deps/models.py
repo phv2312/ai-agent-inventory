@@ -24,3 +24,7 @@ class WebSearchModel(StrEnum):
 class ChatModel(StrEnum):
     AZURE_OPENAI = auto()
     ANTHROPIC = auto()
+
+
+class ProgramsModel(StrEnum):
+    NAME_SUGGESTION = auto()

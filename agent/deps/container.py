@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
+from agent.programs import BaseProgram, NameSuggestionProgram
 from agent.textsplitters import (
     ITextSplitter,
     LangchainTextSplitter,
@@ -31,6 +32,7 @@ from agent.storages.file import FileStorage
 
 from .models import (
     EmbeddingModel,
+    ProgramsModel,
     TextSplitterModel,
     ExtractorModel,
     VectorDBModel,
@@ -77,6 +79,25 @@ class EmbeddingProvider(BaseProvider[EmbeddingModel, IEmbeddingModel]):
             api_version=self.env.OPENAI_API_VERSION,
             azure_endpoint=self.env.OPENAI_AZURE_ENDPOINT,
             deployment_name=self.env.OPENAI_EMBEDDING_DEPLOYMENT_NAME,
+        )
+
+
+class ProgramsProvider(BaseProvider[ProgramsModel, BaseProgram[Any]]):
+    def __init__(self, env: Env, chat_provider: "ChatProvider") -> None:
+        self.env = env
+        self.chat_provider = chat_provider
+
+    @property
+    def mp_name_init(self) -> MPReturn[ProgramsModel, BaseProgram[Any]]:
+        return {
+            ProgramsModel.NAME_SUGGESTION: self.init_name_suggestion,
+        }
+
+    @lru_cache(maxsize=1)
+    def init_name_suggestion(self) -> NameSuggestionProgram:
+        return NameSuggestionProgram(
+            chat_model=self.chat_provider.get(ChatModel.AZURE_OPENAI),
+            model_name=self.env.OPENAI_CHAT_DEPLOYMENT_NAME,
         )
 
 
@@ -282,6 +303,10 @@ class Container:
             self.embeddings,
             self.chats,
         )
+
+    @cached_property
+    def programs(self) -> ProgramsProvider:
+        return ProgramsProvider(self.env, self.chats)
 
 
 container = Container()
