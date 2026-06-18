@@ -1,11 +1,11 @@
-"""Chat tab UI inspired by kotaemon."""
-
-import asyncio
 from pathlib import Path
 from typing import Any
 
 import gradio as gr
 
+from agent.citations import apply_snippet_highlights
+from agent.deps.models import ProgramsModel
+from agent.models.messages import UserMessage
 from applications.agentic_rag.core.models import Conversation
 from applications.agentic_rag.core.registry import FileRegistry
 from applications.agentic_rag.services.chat import (
@@ -36,6 +36,22 @@ def _render_info_with_widget(
 
 
 PLACEHOLDER = "This is the beginning of a new conversation.\nStart by uploading a file"
+
+
+def _build_name_suggestion_content(
+    message: str,
+    prior_history: list[dict[str, str]],
+) -> str:
+    """Combine prior history and the current user query for naming."""
+    lines: list[str] = []
+    for item in prior_history:
+        role = item.get("role", "")
+        content = item.get("content", "").strip()
+        if content:
+            lines.append(f"{role}: {content}")
+    if message.strip():
+        lines.append(f"user: {message.strip()}")
+    return "\n".join(lines)
 
 
 class ChatTab:
@@ -410,6 +426,10 @@ class ChatTab:
             return
 
         conv = self.conversations.get(conv_id) or self._ensure_default()
+        prior_history = conv.history
+        is_first_assistant = not any(
+            m.get("role") == "assistant" for m in prior_history
+        )
         conv.search_all = search_mode == "all"
         file_ids = self._resolve_file_ids(search_mode, conv.selected_file_ids)
 
@@ -431,6 +451,7 @@ class ChatTab:
         response_str = ""
         widget_code = ""
         widget_title: str | None = None
+        mp_chunk_snippets: dict[str, list[str]] = {}
 
         async for kind, delta in self.chat_service.stream_answer(
             message,
@@ -443,6 +464,8 @@ class ChatTab:
                 widget_code = delta
             elif kind == "widget_title":
                 widget_title = delta
+            elif kind == "citations":
+                mp_chunk_snippets = delta
             else:
                 response_str += delta
 
@@ -455,14 +478,25 @@ class ChatTab:
                 thought_str,
                 gr.update(visible=bool(thought_str)),
             )
-            await asyncio.sleep(0.02)
 
         conv.history = history
-        if len(conv.history) == 2 and conv.name == "New conversation":
-            conv.name = message[:40] or "New conversation"
+        if is_first_assistant:
+            name_content = _build_name_suggestion_content(
+                message,
+                prior_history,
+            )
+            if name_content.strip():
+                name_program = self.chat_service.container.programs.get(
+                    ProgramsModel.NAME_SUGGESTION,
+                )
+                suggestion = await name_program.aprocess(
+                    UserMessage(content=name_content),
+                )
+                conv.name = suggestion.name
 
         chunk_ids = parse_cited_chunk_ids(response_str)
         cited_sources = await self.chat_service.fetch_chunks_by_ids(chunk_ids)
+        cited_sources = apply_snippet_highlights(cited_sources, mp_chunk_snippets)
         citation_map = build_citation_map(cited_sources)
         enriched = enrich_citations(response_str, citation_map)
         history[-1]["content"] = enriched
