@@ -56,7 +56,12 @@ function run() {
     const target = document.getElementById(`chunk-${chunkId}`);
     if (!target) return;
     target.open = true;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    const mark = target.querySelector("mark");
+    if (mark) {
+      mark.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     target.classList.add("chunk-highlight");
     setTimeout(() => target.classList.remove("chunk-highlight"), 2000);
   };

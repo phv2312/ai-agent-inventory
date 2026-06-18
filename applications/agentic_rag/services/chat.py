@@ -4,6 +4,8 @@ import html
 import re
 from collections.abc import AsyncGenerator
 
+from agent.citations import apply_snippet_highlights, mp_chunk_id_snippets_from_items
+from agent.citations.inline import render_highlighted_body
 from agent.deps import Container, VectorDBModel
 from agent.models.document import DocumentMetadata, ScoredChunk
 from agent.models.messages import AssistantMessage, UserMessage
@@ -18,6 +20,7 @@ from agent.models.streams import (
 )
 from agent.storages.config import AnchorFields
 from agent.tools.schemas.registry import (
+    InlineCitationsParameters,
     ToolNames,
     VisualizeShowWidgetParameters,
 )
@@ -55,6 +58,7 @@ class ChatService:
         Yields tuples of (kind, payload) where kind is one of:
         - ``"thought"`` — reasoning / tool-call text delta
         - ``"text"`` — final answer text delta
+        - ``"citations"`` — inline snippet map ``chunk_id -> [snippets]``
         - ``"widget"`` — complete widget_code once generation is done
         - ``"widget_title"`` — widget title (emitted with widget)
         """
@@ -63,6 +67,7 @@ class ChatService:
         widget_extractor = WidgetCodeStreamExtractor()
         widget_call_id: str | None = None
         widget_code = ""
+        mp_chunk_snippets: dict[str, list[str]] = {}
 
         async for event in strategy.stream_async_answer(
             query=query,
@@ -90,6 +95,20 @@ class ChatService:
             elif isinstance(event, FunctionCallArgsDoneEvent):
                 if isinstance(event.item, WebSearchFunctionCall):
                     yield "thought", f"{event.item.as_str}\n\n"
+                elif (
+                    isinstance(event.item, CustomFunctionCall)
+                    and event.item.name == ToolNames.INLINE_CITATIONS_TOOL
+                ):
+                    try:
+                        params = InlineCitationsParameters.model_validate_json(
+                            event.item.arguments,
+                        )
+                        mp_chunk_snippets.update(
+                            mp_chunk_id_snippets_from_items(params.citations),
+                        )
+                        yield "citations", mp_chunk_snippets
+                    except Exception:
+                        pass
                 elif (
                     isinstance(event.item, CustomFunctionCall)
                     and event.item.name == ToolNames.VISUALIZE_SHOW_WIDGET_TOOL
@@ -172,7 +191,7 @@ def render_info_panel(chunks: list[ScoredChunk]) -> str:
             f"<span class='score-badge'>"
             f"[score: {scored.score:.1f}]</span>"
         )
-        body = html.escape(scored.text[:800])
+        body = render_highlighted_body(scored.text[:800])
         parts.append(
             f"<details id='chunk-{chunk_id}' class='evidence' open>"
             f"<summary>{summary}</summary>"
