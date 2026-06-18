@@ -1,7 +1,5 @@
 """Highlight matched evidence spans in chunk text."""
 
-import re
-
 from .matcher import find_quote_span
 
 
