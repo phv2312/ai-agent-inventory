@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Sequence
 from typing import Protocol
 
 from agent.models.document import ScoredChunk
@@ -17,7 +18,7 @@ class CitationItem(Protocol):
 
 
 def mp_chunk_id_snippets_from_items(
-    items: list[CitationItem],
+    items: Sequence[CitationItem],
 ) -> dict[str, list[str]]:
     """Merge citation rows into ``chunk_id -> snippets``."""
     mp_chunk_snippets: dict[str, list[str]] = {}

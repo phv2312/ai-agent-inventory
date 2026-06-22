@@ -1,9 +1,10 @@
 from collections.abc import Sequence
 from enum import StrEnum
 from functools import cached_property
-import logging
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
+
+import structlog
 from pydantic import Field, BaseModel
 from pymilvus import (
     AsyncMilvusClient,
@@ -19,7 +20,7 @@ from agent.models.document import Chunk, ScoredChunk, ScoredChunks
 from agent.models.embeddings import BaseEmbedding, EmbeddingSize
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class RetrievedRecord(TypedDict):
@@ -135,7 +136,10 @@ class Milvus:
 
     def create_collection(self) -> None:
         if self.client.has_collection(self.collection_name):
-            logger.info(f"Collection {self.collection_name} already exists")
+            logger.info(
+                "Collection already exists",
+                collection_name=self.collection_name,
+            )
         else:
             self.client.create_collection(
                 collection_name=self.collection_name,
@@ -143,10 +147,13 @@ class Milvus:
                 index_params=self.config.index_params,
                 consistency_level=self.config.consistency,
             )
-            logger.info(f"Collection {self.collection_name} created")
+            logger.info(
+                "Collection created",
+                collection_name=self.collection_name,
+            )
 
         self.client.load_collection(self.collection_name)
-        logger.info(f"Collection {self.collection_name} loaded")
+        logger.info("Collection loaded", collection_name=self.collection_name)
 
     async def add(
         self, chunks: Sequence[Chunk], embeddings: Sequence[BaseEmbedding]
@@ -165,11 +172,15 @@ class Milvus:
                     for idx in batched_idxs
                 ],
             )
-        logger.info(f"Added {len(chunks)} chunks to collection {self.collection_name}")
+        logger.info(
+            "Added chunks to collection",
+            chunk_count=len(chunks),
+            collection_name=self.collection_name,
+        )
 
     async def retrieve_by_filter(
         self,
-        filtered_dict: dict[str, list[str | int]],
+        filtered_dict: dict[str, Sequence[str | int]],
         *,
         limit: int = 1000,
     ) -> ScoredChunks:
@@ -199,13 +210,13 @@ class Milvus:
         self,
         query: BaseEmbedding,
         top_k: int = 10,
-        filtered_dict: dict[str, list[str | int]] | None = None,
+        filtered_dict: dict[str, Sequence[str | int]] | None = None,
     ) -> ScoredChunks:
         filter_expr = ""
         if filtered_dict:
             exprs = [f"{key} in {str(value)}" for key, value in filtered_dict.items()]
             filter_expr = " and ".join(exprs)
-            logger.info(f"Filtering with {filter_expr}")
+            logger.info("Filtering search", filter_expr=filter_expr)
 
         # semantic search
         searches: list[list[RetrievedRecord]] = await self.async_client.search(
@@ -225,7 +236,7 @@ class Milvus:
 
     async def delete_by_filter(
         self,
-        filtered_dict: dict[str, list[str | int]],
+        filtered_dict: dict[str, Sequence[str | int]],
     ) -> None:
         filter_expr = " and ".join(
             [f"{key} in {str(value)}" for key, value in filtered_dict.items()],
@@ -235,7 +246,7 @@ class Milvus:
             filter=filter_expr,
         )
         logger.info(
-            "Deleted chunks from collection %s with filter %s",
-            self.collection_name,
-            filter_expr,
+            "Deleted chunks from collection",
+            collection_name=self.collection_name,
+            filter_expr=filter_expr,
         )

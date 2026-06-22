@@ -1,13 +1,14 @@
 import asyncio
-import logging
+
+import structlog
 
 from agent.embeddings.interface import IEmbeddingModel
 from agent.models.document import ScoredChunks
 from agent.storages.vectordb.milvus import Milvus
-from agent.searches import IWebSearch
+from agent.websearches import IWebSearch
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class HybridSearch:
@@ -33,7 +34,10 @@ class HybridSearch:
 
         vectordb_results = await self.milvus.search(query_embedding[0], top_k=top_k)
 
-        logger.info("Retrieve %d semantic results", len(vectordb_results.root))
+        logger.info(
+            "Retrieve semantic results",
+            count=len(vectordb_results.root),
+        )
 
         return vectordb_results
 
@@ -50,8 +54,8 @@ class HybridSearch:
         retrieval_list: list[ScoredChunks] = await asyncio.gather(*search_tasks)
 
         logger.info(
-            "Retrieve %s retrieved results",
-            [len(retrieval) for retrieval in retrieval_list],
+            "Retrieve hybrid results",
+            result_counts=[len(retrieval) for retrieval in retrieval_list],
         )
 
         return ScoredChunks([]).extend(retrieval_list)

@@ -8,3 +8,27 @@ wheels/
 
 # Virtual environments
 .venv
+venv/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Environment and local data
+.env
+.env.*
+*.db
+.agent-api-data/
+
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.tmp
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/

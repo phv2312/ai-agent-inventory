@@ -10,3 +10,5 @@ globs: **/*.py
 - Limit the use of global variables to reduce side effects.
 - ALWAYS KEEP MAX LINE LENGTH TO 79.
 - Prefer `pathlib` to `os.path`.
+- Do not use `getattr`; prefer explicit attributes, typed fields, or direct access.
+- Do not add `from __future__ import annotations` unless required (e.g. recursive types that cannot use quoted forward refs). Quoted forward references such as `"ClassA"` are fine.
