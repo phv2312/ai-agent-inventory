@@ -1,3 +1,4 @@
+import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 
@@ -107,10 +108,25 @@ class ReAct:
             ).parsed
             if parsed_function_call is None or actor is None:
                 logger.warning(
-                    "Actor registry or parsed function call is None",
+                    "Unhandled tool call; emitting error output",
                     function_call=function_call,
                     actor=actor,
                     parsed_function_call=parsed_function_call,
+                )
+                self.request.messages.append(
+                    FunctionCallOutput(
+                        call_id=function_call.call_id,
+                        output=json.dumps(
+                            {
+                                "status": "error",
+                                "message": (
+                                    f"Tool '{function_call.name}' is not "
+                                    "available or could not be parsed."
+                                ),
+                            },
+                            ensure_ascii=False,
+                        ),
+                    ),
                 )
                 continue
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from agent.db.models import IndexStatus, MessageRole
 
@@ -20,6 +20,16 @@ class MessageRecord:
     role: MessageRole
     content: str
     mapping_evidence: dict[str, str] | None
+    content_blocks: list[dict[str, Any]] | None
+    created_at: datetime
+
+
+@dataclass
+class CitationRecord:
+    id: str
+    message_id: str
+    chunk_id: str
+    snippets: list[str]
     created_at: datetime
 
 
@@ -66,11 +76,27 @@ class MessageRepository(Protocol):
         role: MessageRole,
         content: str,
         mapping_evidence: dict[str, str] | None = None,
+        content_blocks: list[dict[str, Any]] | None = None,
     ) -> MessageRecord: ...
     async def list_by_conversation(
         self, conversation_id: str
     ) -> list[MessageRecord]: ...
     async def count_by_conversation(self, conversation_id: str) -> int: ...
+
+
+class CitationRepository(Protocol):
+    async def bulk_create(
+        self,
+        message_id: str,
+        mp_chunk_snippets: dict[str, list[str]],
+    ) -> list[CitationRecord]: ...
+    async def get_snippets(
+        self, message_id: str, chunk_id: str
+    ) -> list[str] | None: ...
+    async def snippets_for_chunks(
+        self, message_id: str, chunk_ids: list[str]
+    ) -> dict[str, list[str]]: ...
+    async def list_by_message(self, message_id: str) -> list[CitationRecord]: ...
 
 
 class CollectionRepository(Protocol):

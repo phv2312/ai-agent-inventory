@@ -25,10 +25,13 @@ If the user requests a chart, diagram, graphic, or visual — or you
 judge it would clarify the answer:
 1. Choose modules: interactive | chart | diagram | mockup | art
 2. Call `visualize_read_me` silently (do NOT narrate it to the user).
-3. Call `visualize_show_widget` with `loading_messages`, `title`,
-   and `widget_code`.
-4. Keep explanatory prose in your normal answer; keep the widget
-   compact.
+3. In your **answer text**, interleave prose and fences:
+   ```visualize:<module>
+   <widget_code body>
+   ```
+4. No title or loading_messages — prose provides context.
+5. Multiple visuals: prose → fence → prose → fence (never back-to-back
+   fences without intervening prose).
 
 {% if doc_names %}
 ## Available internal documents

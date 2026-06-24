@@ -57,12 +57,38 @@ class MessageORM(Base):
     )
     role: Mapped[MessageRole] = mapped_column(String(20))
     content: Mapped[str] = mapped_column(Text)
+    content_blocks: Mapped[list | None] = mapped_column(JSON, nullable=True)
     mapping_evidence: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
 
     conversation: Mapped[ConversationORM] = relationship(back_populates="messages")
+    citations: Mapped[list["CitationORM"]] = relationship(
+        back_populates="message",
+        cascade="all, delete-orphan",
+    )
+
+
+class CitationORM(Base):
+    __tablename__ = "citations"
+    __table_args__ = (
+        UniqueConstraint("message_id", "chunk_id", name="uq_citation_message_chunk"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    message_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("messages.id", ondelete="CASCADE"), index=True
+    )
+    chunk_id: Mapped[str] = mapped_column(String(64))
+    snippets: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+    message: Mapped[MessageORM] = relationship(back_populates="citations")
 
 
 class CollectionORM(Base):

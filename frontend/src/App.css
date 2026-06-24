@@ -1,0 +1,259 @@
+/* ============================================
+   APP STYLES
+   Knowledge Network RAG Chat
+   ============================================ */
+
+/* App Container */
+.app {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar Base */
+.sidebar {
+    width: 260px;
+    background: var(--color-sidebar-bg);
+    color: var(--color-sidebar-text);
+    padding: var(--spacing-md);
+}
+
+.sidebar-header {
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-sidebar-text-muted);
+}
+
+/* Main Chat Area */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    min-width: 0;
+}
+
+/* Chat Header */
+.chat-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.doc-count {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* Empty State */
+.chat-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.chat-empty-icon {
+    width: 64px;
+    height: 64px;
+    color: var(--color-border);
+}
+
+/* Evidence Viewer */
+.chat-evidence-viewer {
+    padding: var(--spacing-md);
+}
+
+.chat-evidence-header {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text);
+}
+
+.chat-evidence-item {
+    color: var(--color-text);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    background: var(--color-background);
+    margin-bottom: var(--spacing-sm);
+}
+
+.document-item {
+    color: var(--color-text);
+}
+
+/* ============================================
+   MENTIONS INPUT COMPONENT
+   ============================================ */
+
+/* Root control */
+.mentions__control {
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    position: relative;
+    font-family: var(--font-sans);
+}
+
+/* Input & highlighter layers */
+.mentions__input,
+.mentions__highlighter {
+    padding: 0.75rem 1rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Real textarea */
+.mentions__input {
+    background: transparent;
+    color: var(--color-text);
+    caret-color: var(--color-primary);
+}
+
+.mentions__input:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Highlight layer behind input */
+.mentions__highlighter {
+    color: transparent;
+}
+
+/* Mention appearance (selected & committed) */
+.mentions__mention {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--color-primary);
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Mention inside the highlighter (while typing) */
+.mentions__highlighter .mentions__mention {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--color-primary-hover);
+}
+
+/* Hover / cursor inside mention */
+.mentions__mention:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+/* When navigating mentions via keyboard */
+.mentions__mention--focused {
+    background-color: rgba(59, 130, 246, 0.25);
+    color: var(--color-primary-hover);
+}
+
+/* Suggestions dropdown */
+.mentions__suggestions {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    z-index: 50;
+}
+
+/* Each suggestion */
+.mentions__suggestions__item {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: var(--color-text);
+    transition: background var(--transition-fast);
+}
+
+/* Focused suggestion */
+.mentions__suggestions__item--focused {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-primary);
+}
+
+/* Remove any focus rings from the mentions control */
+.mentions__control:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Floating composer: mentions fill top region without inner chrome */
+.message-composer-card .mentions__input,
+.message-composer-card .mentions__highlighter {
+    padding: 0.25rem 0 0.75rem;
+    min-height: 5.25rem;
+}
+
+.message-composer-card .composer-mentions-thread .mentions__control {
+    min-height: 3.25rem;
+}
+
+.message-composer-card .composer-mentions-thread .mentions__input,
+.message-composer-card .composer-mentions-thread .mentions__highlighter {
+    min-height: 3.25rem;
+    padding: 0.125rem 0 0.5rem;
+}
+
+.message-composer-card .mentions__control {
+    min-height: 5.25rem;
+}
+
+/* ============================================
+   PROSE CHAT CUSTOMIZATION
+   ============================================ */
+
+.prose-chat {
+    --tw-prose-body: var(--color-text);
+    --tw-prose-headings: var(--color-text);
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-bold: var(--color-text);
+    --tw-prose-bullets: var(--color-text-light);
+    --tw-prose-quotes: var(--color-text-muted);
+    --tw-prose-code: var(--color-text);
+    --tw-prose-pre-code: #E2E8F0;
+    --tw-prose-pre-bg: var(--color-sidebar-bg);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Glass effect for modals/overlays */
+.glass {
+    background: rgba(47, 47, 47, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-dark {
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Skeleton loading */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--color-border-light) 0%,
+        var(--color-border) 50%,
+        var(--color-border-light) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

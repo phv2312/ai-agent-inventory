@@ -8,7 +8,7 @@ from agent.api.settings import ApiSettings
 from agent.api.v1.deps.root import get_container, get_repos, get_settings
 from agent.api.v1.docs.description import Descriptions
 from agent.api.v1.payload.chunks import ChunkItemResponse, ChunksBatchResponse
-from agent.citations.inline import apply_snippet_highlights
+from agent.services.citations.inline import apply_snippet_highlights
 from agent.deps.models import VectorDBModel
 from agent.models.document import DocumentMetadata, ScoredChunk
 from agent.storages.config import AnchorFields
@@ -27,7 +27,7 @@ async def batch_get_chunks(
     container: Annotated[ApiContainer, Depends(get_container)],
     settings: Annotated[ApiSettings, Depends(get_settings)],
     chunk_ids: Annotated[list[str], Query()],
-    snippets: Annotated[list[str] | None, Query()] = None,
+    message_id: Annotated[str | None, Query()] = None,
 ) -> ChunksBatchResponse:
     if not chunk_ids:
         raise AppError("ValidationError", "chunk_ids is required", 422)
@@ -37,26 +37,14 @@ async def batch_get_chunks(
             f"At most {settings.MAX_CHUNK_IDS} chunk_ids allowed",
             422,
         )
-    snippet_list = snippets or []
-    if len(snippet_list) > settings.MAX_SNIPPETS:
-        raise AppError(
-            "ValidationError",
-            f"At most {settings.MAX_SNIPPETS} snippets allowed",
-            422,
-        )
+
+    mp_snippets: dict[str, list[str]] = {}
+    if message_id:
+        mp_snippets = await repos.citations.snippets_for_chunks(message_id, chunk_ids)
 
     milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
     scored = await milvus.retrieve_by_filter({AnchorFields.ID: chunk_ids})
     by_id = {str(s.chunk.chunk_id): s for s in scored.root}
-
-    mp_snippets: dict[str, list[str]] = {}
-    if snippet_list:
-        default_snippets = snippet_list
-        for i, chunk_id in enumerate(chunk_ids):
-            if len(snippet_list) == len(chunk_ids):
-                mp_snippets[chunk_id] = [snippet_list[i]]
-            else:
-                mp_snippets[chunk_id] = list(default_snippets)
 
     highlighted = apply_snippet_highlights(list(by_id.values()), mp_snippets)
     highlighted_by_id = {str(s.chunk.chunk_id): s for s in highlighted}
@@ -77,9 +65,8 @@ async def batch_get_chunks(
             continue
 
         warnings: list[str] | None = None
-        if snippet_list and chunk_id in mp_snippets:
-            if "<mark" not in scored_chunk.chunk.text:
-                warnings = ["snippet did not match chunk text"]
+        if mp_snippets.get(chunk_id) and "<mark" not in scored_chunk.chunk.text:
+            warnings = ["snippet did not match chunk text"]
 
         meta = await _chunk_metadata(scored_chunk, repos)
         items.append(

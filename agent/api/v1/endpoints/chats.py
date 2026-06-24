@@ -13,6 +13,7 @@ from agent.api.settings import ApiSettings
 from agent.db.models import MessageRole
 from agent.models.messages import AssistantMessage, UserMessage
 from agent.services.chatstream.core import ChatStreamService
+from agent.services.messages.normalize import blocks_to_api_dicts
 from agent.services.chatstream.models import (
     NameSuggestionData,
     is_untitled_conversation,
@@ -122,22 +123,30 @@ async def chat(
             return
 
         state = chat_service.last_state
-        if not state.completed or not state.answer_text.strip():
+        has_output = bool(state.answer_text.strip()) or bool(state.content_blocks)
+        if not has_output:
             return
 
+        content = state.answer_text
         mapping = ChatStreamService.build_mapping_evidence(
-            state.answer_text,
+            content,
             state.validated_chunk_ids,
+        )
+        content_blocks = (
+            blocks_to_api_dicts(state.content_blocks) if state.content_blocks else None
         )
 
         async with container.session_factory() as session:
             repos = container.repos(session)
-            await repos.messages.create(
+            msg = await repos.messages.create(
                 conversation_id,
                 MessageRole.assistant,
-                state.answer_text,
+                content,
                 mapping_evidence=mapping or None,
+                content_blocks=content_blocks,
             )
+            if state.mp_chunk_snippets:
+                await repos.citations.bulk_create(msg.id, state.mp_chunk_snippets)
 
             suggestion = await chat_service.name_suggestion_event(
                 conversation_title, text

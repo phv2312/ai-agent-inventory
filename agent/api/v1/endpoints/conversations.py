@@ -5,13 +5,17 @@ from fastapi import APIRouter, Depends, Response, status
 from agent.api.exc.http import AppError
 from agent.api.v1.deps.root import get_repos
 from agent.api.v1.payload.conversations import (
+    ContentBlockResponse,
     ConversationCreate,
     ConversationResponse,
     ConversationUpdate,
     MessageResponse,
 )
-from agent.repos.protocols import ConversationRecord, MessageRecord
+import uuid
+
 from agent.api.container import Repositories
+from agent.db.models import MessageRole
+from agent.repos.protocols import ConversationRecord, MessageRecord
 
 router = APIRouter()
 
@@ -26,11 +30,26 @@ def _conversation_response(record: ConversationRecord) -> ConversationResponse:
 
 
 def _message_response(record: MessageRecord) -> MessageResponse:
+    if record.content_blocks:
+        blocks = [ContentBlockResponse.model_validate(b) for b in record.content_blocks]
+    elif record.role == MessageRole.assistant and record.content.strip():
+        blocks = [
+            ContentBlockResponse(
+                id=str(uuid.uuid4()),
+                type="text",
+                order=0,
+                status="complete",
+                text=record.content,
+            )
+        ]
+    else:
+        blocks = []
     return MessageResponse(
         id=record.id,
         conversation_id=record.conversation_id,
         role=record.role.value,
         content=record.content,
+        content_blocks=blocks,
         mapping_evidence=record.mapping_evidence,
         created_at=record.created_at,
     )

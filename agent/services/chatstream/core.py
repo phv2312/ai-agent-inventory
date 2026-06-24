@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 
 from sse_starlette import ServerSentEvent
 
-from agent.citations import mp_chunk_id_snippets_from_items
+from agent.services.citations import mp_chunk_id_snippets_from_items
 from agent.deps.container import Container
+from agent.models.content_blocks import ContentBlock
 from agent.models.messages import AssistantMessage, UserMessage
 from agent.models.streams import (
     CustomFunctionCall,
@@ -17,6 +18,7 @@ from agent.models.streams import (
     ThinkingDeltaEvent,
     WebSearchToolDefinition,
 )
+from agent.services.chatstream.block_assembler import ContentBlockAssembler
 from agent.services.chatstream.models import (
     CITATION_INDEX_PATTERN,
     NameSuggestionData,
@@ -24,6 +26,7 @@ from agent.services.chatstream.models import (
     StreamErrorData,
     is_untitled_conversation,
 )
+from agent.services.messages.normalize import flatten_text_from_blocks
 from agent.tools.schemas.registry import (
     InlineCitationsParameters,
     ToolNames,
@@ -36,6 +39,8 @@ class ChatStreamState:
     answer_text: str = ""
     reasoning_text: str = ""
     validated_chunk_ids: list[str] = field(default_factory=list)
+    mp_chunk_snippets: dict[str, list[str]] = field(default_factory=dict)
+    content_blocks: list[ContentBlock] = field(default_factory=list)
     completed: bool = False
     had_error: bool = False
 
@@ -57,6 +62,7 @@ class ChatStreamService:
         system_prompt: str | None = None,
     ) -> AsyncGenerator[ServerSentEvent, None]:
         state = ChatStreamState()
+        assembler = ContentBlockAssembler()
         strategy = self.agent_container.agentic.get()
 
         tool_defs = ToolSchemaRegistry.agentic_tools(
@@ -65,8 +71,8 @@ class ChatStreamService:
         if web_search_enabled:
             tool_defs = [*tool_defs, WebSearchToolDefinition()]
 
-        chat_idx = 0
         reasoning_idx = 0
+        accelerated_chat_text = ""
 
         try:
             async for event in strategy.stream_async_answer(
@@ -78,6 +84,9 @@ class ChatStreamService:
                 tools=tool_defs,
                 memory_md_content=system_prompt or "",
             ):
+                if isinstance(event, TextDeltaEvent):
+                    accelerated_chat_text += event.content
+
                 if isinstance(event, FunctionCallArgsDoneEvent) and isinstance(
                     event.item, CustomFunctionCall
                 ):
@@ -86,33 +95,54 @@ class ChatStreamService:
                             params = InlineCitationsParameters.model_validate_json(
                                 event.item.arguments
                             )
-                            for chunk_id in mp_chunk_id_snippets_from_items(
+                            mp_updates = mp_chunk_id_snippets_from_items(
                                 params.citations
-                            ):
+                            )
+                            for chunk_id, snippets in mp_updates.items():
+                                state.mp_chunk_snippets.setdefault(chunk_id, []).extend(
+                                    snippets
+                                )
                                 if chunk_id not in state.validated_chunk_ids:
                                     state.validated_chunk_ids.append(chunk_id)
                         except Exception:
                             pass
 
-                sse = self._map_event(event, chat_idx, reasoning_idx, state)
                 if isinstance(event, TextDeltaEvent):
-                    chat_idx += 1
-                elif isinstance(
-                    event, (ThinkingDeltaEvent, FunctionCallTextDeltaEvent)
-                ):
+                    for block_sse in assembler.handle(event):
+                        yield block_sse
+                    continue
+
+                sse = self._map_event(event, reasoning_idx, state)
+                if isinstance(event, (ThinkingDeltaEvent, FunctionCallTextDeltaEvent)):
                     reasoning_idx += 1
                 if isinstance(event, ErrorEvent):
                     state.had_error = True
                 if sse is not None:
                     yield sse
 
+            if state.had_error:
+                for block_sse in assembler.close_open_blocks_incomplete():
+                    yield block_sse
+                state.content_blocks = assembler.finalize(incomplete=True)
+            else:
+                state.content_blocks = assembler.finalize(incomplete=False)
+            if state.content_blocks:
+                state.answer_text = flatten_text_from_blocks(state.content_blocks)
             state.completed = not state.had_error
         except Exception as exc:
             state.had_error = True
+            for block_sse in assembler.close_open_blocks_incomplete():
+                yield block_sse
+            state.content_blocks = assembler.finalize(incomplete=True)
+            if state.content_blocks:
+                state.answer_text = flatten_text_from_blocks(state.content_blocks)
             payload = StreamErrorData(code="InternalAIServiceError", message=str(exc))
             yield ServerSentEvent(event="error", data=payload.model_dump_json())
 
         self._last_state = state
+
+        with open("accelerated_chat_text.txt", "w") as f:
+            f.write(accelerated_chat_text)
 
     @property
     def last_state(self) -> ChatStreamState:
@@ -121,14 +151,9 @@ class ChatStreamService:
     def _map_event(
         self,
         event: StreamEvent,
-        chat_idx: int,
         reasoning_idx: int,
         state: ChatStreamState,
     ) -> ServerSentEvent | None:
-        if isinstance(event, TextDeltaEvent):
-            state.answer_text += event.content
-            payload = [StreamChatItem(idx=chat_idx, content=event.content).model_dump()]
-            return ServerSentEvent(event="chat", data=json.dumps(payload))
         if isinstance(event, ThinkingDeltaEvent):
             state.reasoning_text += event.content
             payload = [

@@ -1,6 +1,6 @@
 import re
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StreamChatItem(BaseModel):
@@ -16,6 +16,26 @@ class StreamErrorData(BaseModel):
 
 class NameSuggestionData(BaseModel):
     name: str
+
+
+class BlockOpenData(BaseModel):
+    block_id: str
+    type: str
+    order: int
+    module: str | None = None
+    title: str | None = None
+    loading_messages: list[str] = Field(default_factory=list)
+
+
+class BlockDeltaData(BaseModel):
+    block_id: str
+    content: str
+
+
+class BlockCloseData(BaseModel):
+    block_id: str
+    status: str
+    error_message: str | None = None
 
 
 class TokenUsageData(BaseModel):

@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from agent.api.settings import ApiSettings
 from agent.deps.container import Container
 from agent.db.session import create_engine, create_session_factory, init_db
+from agent.repos.citation import SQLCitationRepository
 from agent.repos.collection import SQLCollectionRepository
 from agent.repos.conversation import SQLConversationRepository
 from agent.repos.message import SQLMessageRepository
 from agent.repos.reference import SQLReferenceRepository
 from agent.repos.protocols import (
+    CitationRepository,
     CollectionRepository,
     ConversationRepository,
     MessageRepository,
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
 class Repositories:
     conversations: ConversationRepository
     messages: MessageRepository
+    citations: CitationRepository
     collections: CollectionRepository
     references: ReferenceRepository
 
@@ -68,6 +71,7 @@ class ApiContainer:
         return Repositories(
             conversations=SQLConversationRepository(session),
             messages=SQLMessageRepository(session),
+            citations=SQLCitationRepository(session, self.settings),
             collections=SQLCollectionRepository(session),
             references=SQLReferenceRepository(session),
         )

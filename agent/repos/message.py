@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,12 +16,14 @@ class SQLMessageRepository:
         role: MessageRole,
         content: str,
         mapping_evidence: dict[str, str] | None = None,
+        content_blocks: list[dict[str, Any]] | None = None,
     ) -> MessageRecord:
         row = MessageORM(
             conversation_id=conversation_id,
             role=role,
             content=content,
             mapping_evidence=mapping_evidence,
+            content_blocks=content_blocks,
         )
         self.session.add(row)
         await self.session.flush()
@@ -52,5 +55,6 @@ def _to_record(row: MessageORM) -> MessageRecord:
         role=role,
         content=row.content,
         mapping_evidence=row.mapping_evidence,
+        content_blocks=row.content_blocks,
         created_at=row.created_at,
     )

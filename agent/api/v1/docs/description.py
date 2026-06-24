@@ -28,6 +28,6 @@ class Descriptions:
     LIST_REFERENCE_CHUNKS = "List indexed chunks for a completed reference."
 
     BATCH_CHUNKS = (
-        "Batch fetch chunk bodies by id. Optional snippets highlight matching spans "
-        "for evidence panel lazy-load."
+        "Batch fetch chunk bodies by id. Optional message_id loads stored "
+        "citation snippets for highlight in the evidence panel."
     )

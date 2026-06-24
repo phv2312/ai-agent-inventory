@@ -9,10 +9,76 @@ Call read_me again with the modules parameter to load detailed guidance:
 - `art` — illustration and generative art
 Pick the closest fit. The module includes all relevant design guidance.
 
-**Complexity budget — hard limits:**
+## KN runtime (preferred for charts & standard diagrams)
+
+The widget iframe preloads global `KN`. Use short JS calls instead of hand-written Chart.js HTML or SVG coordinates.
+
+| Intent | Preferred | Fallback |
+|--------|-----------|----------|
+| Bar/line/pie chart | `KN.chart({ type, labels, series })` | Raw Chart.js HTML |
+| Flowchart / pipeline / architecture / sequence / ER | `KN.mermaid(source)` — Mermaid DSL | Raw SVG (illustrative only) |
+| Illustrative / intuition diagram | Raw SVG with css classes | — |
+| Algorithm step-through (quicksort, etc.) | Raw HTML/JS | — |
+
+```html
+<script>
+KN.chart({ type: 'bar', labels: ['Q1','Q2'], series: [{ label: 'Revenue', data: [12, 19] }] });
+</script>
+```
+
+```html
+<script>
+KN.mermaid(`flowchart TB
+  subgraph tier1[Client layer]
+    SDK[SDK]
+  end
+  subgraph tier2[Access layer]
+    Proxy[Proxy]
+  end
+  SDK --> Proxy
+`);
+</script>
+```
+
+**Streaming diagrams**: one `KN.mermaid` per widget iframe. Open `<script>KN.mermaid(\`` early; stream complete lines; close `` `); `` before `</script>`.
+
+**KN.mermaid per-widget limits (agent guidance — not runtime blocked):**
+- **≤8 nodes** per widget iframe (flowchart nodes, sequence participants, ER entities)
+- More than that → **multiple inline fences** — see **multi-widget pacing** below
+- Prefer **3–5 nodes** per widget for readability; tiered architecture → `flowchart TB` + `subgraph` per tier
+
+## Inline fences
+
+Embed visuals in your **answer text** using fenced blocks (users never see the delimiters):
+
+```visualize:chart
+<script>
+KN.chart({ type: 'bar', labels: ['A','B'], series: [{ label: 'X', data: [1, 2] }] });
+</script>
+```
+
+Bridge prose between visuals. Pattern: `prose → fence → prose → fence`.
+
+**Multi-widget pacing (required when splitting diagrams):**
+Never place fences back-to-back — stacked iframes with no text between them read as a broken wall of visuals.
+
+**Pattern:** response text → fence → response text → fence → …
+
+1. **Before the first fence** — 1–2 sentences: what the user will see and why it matters.
+2. **Between each fence** — at least one short paragraph (2–4 sentences): what the previous diagram showed, what the next one adds, how it connects. This text is normal answer prose — **not** inside the fence body.
+3. **After the last fence** (optional) — one sentence tying the slices together if helpful.
+
+**Wrong:** fence → fence → fence with no intervening answer text.
+
+**Right:** intro prose → overview fence → "The access layer fans out into two coordinators; below is the worker tier." → detail fence → wrap-up if needed.
+
+Soft guidance — raw SVG remains valid for illustrative art.
+
+**Complexity budget:**
+- **KN.mermaid**: ≤8 nodes per widget — split into multiple widgets if needed
 - Box subtitles: ≤5 words. Detail goes in click-through (`sendPrompt`) or the prose below — not the box.
 - Colors: ≤2 ramps per diagram. If colors encode meaning (states, tiers), add a 1-line legend. Otherwise use one neutral ramp.
-- Horizontal tier: ≤4 boxes at full width (~140px each). 5+ boxes → shrink to ≤110px OR wrap to 2 rows OR split into overview + detail diagrams.
+- Horizontal tier: ≤4 boxes at full width (~140px each). 5+ boxes → split into another widget iframe
 
 If you catch yourself writing "click to learn more" in prose, the diagram itself must ACTUALLY be sparse. Don't promise brevity then front-load everything.
 

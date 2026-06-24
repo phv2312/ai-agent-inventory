@@ -17,8 +17,6 @@ from agent.tools.acts.impl.think import ThinkAct, ThinkToolCall
 from agent.tools.acts.impl.visualize import (
     VisualizeReadmeAct,
     VisualizeReadmeToolCall,
-    VisualizeShowWidgetAct,
-    VisualizeShowWidgetToolCall,
 )
 from agent.tools.acts.models import BaseToolCall, IToolAct
 from agent.tools.schemas.registry import (
@@ -27,7 +25,6 @@ from agent.tools.schemas.registry import (
     ThinkParameters,
     ToolNames,
     VisualizeReadmeParameters,
-    VisualizeShowWidgetParameters,
 )
 
 logger = structlog.get_logger(__name__)
@@ -77,8 +74,6 @@ class ToolActsRegistry:
                         )
                     },
                 )
-            case ToolNames.VISUALIZE_SHOW_WIDGET_TOOL:
-                return VisualizeShowWidgetAct()
             case _:
                 return None
 
@@ -128,13 +123,6 @@ class ToolParser:
                 return VisualizeReadmeToolCall(
                     id=self.id,
                     params=VisualizeReadmeParameters.model_validate_json(
-                        self.arguments,
-                    ),
-                )
-            case ToolNames.VISUALIZE_SHOW_WIDGET_TOOL:
-                return VisualizeShowWidgetToolCall(
-                    id=self.id,
-                    params=VisualizeShowWidgetParameters.model_validate_json(
                         self.arguments,
                     ),
                 )
