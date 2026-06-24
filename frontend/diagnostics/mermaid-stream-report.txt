@@ -1,0 +1,607 @@
+=== Mermaid aggressive stream diagnostic ===
+generated: 2026-06-23T16:24:31.805Z
+KN.version: 1.5.0
+
+--- flowchart_tiered_ok ---
+widget_chars: 175
+mermaid_chars: 141
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+flowchart TB
+  subgraph client[Client layer]
+    SDK[SDK / ORM]
+  end
+  subgraph access[Access layer]
+    Proxy[Proxy]
+  end
+  SDK --> Proxy
+
+
+NORMALIZED mermaid:
+flowchart TB
+  subgraph client[Client layer]
+    SDK[SDK / ORM]
+  end
+  subgraph access[Access layer]
+    Proxy[Proxy]
+  end
+  SDK --> Proxy
+
+stream chunk=1: steps=175 premature_ready=31 flips=7 final_ready=true
+  step 32 len=32 ready=true src_tail="flowchart T"
+  step 37 len=37 ready=false src_tail="flowchart TB\n  s"
+  step 90 len=90 ready=true src_tail=" TB\n  subgraph client[Client layer]\n    SDK[SDK / ORM]\n  end"
+  step 94 len=94 ready=false src_tail="  subgraph client[Client layer]\n    SDK[SDK / ORM]\n  end\n  s"
+  step 145 len=145 ready=true src_tail="  end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end"
+  step 149 len=149 ready=false src_tail="d\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end\n  S"
+  step 157 len=157 ready=true src_tail="raph access[Access layer]\n    Proxy[Proxy]\n  end\n  SDK --> P"
+stream chunk=4: steps=44 premature_ready=8 flips=7 final_ready=true
+  step 9 len=33 ready=true src_tail="flowchart TB"
+  step 10 len=37 ready=false src_tail="flowchart TB\n  s"
+  step 24 len=93 ready=true src_tail="\n  subgraph client[Client layer]\n    SDK[SDK / ORM]\n  end\n  "
+  step 25 len=97 ready=false src_tail="ubgraph client[Client layer]\n    SDK[SDK / ORM]\n  end\n  subg"
+  step 37 len=145 ready=true src_tail="  end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end"
+  step 38 len=149 ready=false src_tail="d\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end\n  S"
+  step 40 len=157 ready=true src_tail="raph access[Access layer]\n    Proxy[Proxy]\n  end\n  SDK --> P"
+stream chunk=16: steps=11 premature_ready=3 flips=3 final_ready=true
+  step 3 len=33 ready=true src_tail="flowchart TB"
+  step 4 len=49 ready=false src_tail="flowchart TB\n  subgraph clie"
+  step 10 len=145 ready=true src_tail="  end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end"
+stream per-line: steps=11 premature_ready=5 flips=5 final_ready=true
+  line 2 ready=true tail="flowchart TB"
+  line 3 ready=false tail="flowchart TB\n  subgraph client[Client layer]"
+  line 5 ready=true tail=" TB\n  subgraph client[Client layer]\n    SDK[SDK / ORM]\n  end"
+  line 6 ready=false tail="er]\n    SDK[SDK / ORM]\n  end\n  subgraph access[Access layer]"
+  line 8 ready=true tail="  end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end"
+
+--- flowchart_smash_repaired ---
+note: Smashed edge replay — should normalize to single edge
+widget_chars: 93
+mermaid_chars: 59
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+flowchart TB
+  C1[Client] --> P1[ C1[Client] --> P1[Proxy]
+
+
+NORMALIZED mermaid:
+flowchart TB
+  C1[Client] --> P1[Proxy]
+
+stream chunk=1: steps=93 premature_ready=27 flips=9 final_ready=true
+  step 32 len=32 ready=true src_tail="flowchart T"
+  step 37 len=37 ready=false src_tail="flowchart TB\n  C"
+  step 46 len=46 ready=true src_tail="flowchart TB\n  C1[Client]"
+  step 50 len=50 ready=false src_tail="flowchart TB\n  C1[Client] -->"
+  step 52 len=52 ready=true src_tail="flowchart TB\n  C1[Client] --> P"
+  step 54 len=54 ready=false src_tail="flowchart TB\n  C1[Client] --> P1["
+  step 71 len=71 ready=true src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P"
+  step 73 len=73 ready=false src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P1["
+  step 79 len=79 ready=true src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P1[Proxy]"
+stream chunk=4: steps=24 premature_ready=6 flips=5 final_ready=true
+  step 9 len=33 ready=true src_tail="flowchart TB"
+  step 10 len=37 ready=false src_tail="flowchart TB\n  C"
+  step 13 len=49 ready=true src_tail="flowchart TB\n  C1[Client] --"
+  step 15 len=57 ready=false src_tail="flowchart TB\n  C1[Client] --> P1[ C1"
+  step 21 len=81 ready=true src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P1[Proxy]\n"
+stream chunk=16: steps=6 premature_ready=3 flips=3 final_ready=true
+  step 3 len=33 ready=true src_tail="flowchart TB"
+  step 5 len=65 ready=false src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client]"
+  step 6 len=81 ready=true src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P1[Proxy]\n"
+stream per-line: steps=5 premature_ready=3 flips=1 final_ready=true
+  line 2 ready=true tail="flowchart TB"
+
+--- flowchart_smash_partial ---
+note: User parse error — truncated target node
+widget_chars: 91
+mermaid_chars: 57
+final_ready: false
+reject_reasons: L2 other: C1[Client] --> P1[Prox
+
+RAW mermaid:
+flowchart TB
+  C1[Client] --> P1[ C1[Client] --> P1[Prox
+
+
+NORMALIZED mermaid:
+flowchart TB
+  C1[Client] --> P1[Prox
+
+stream chunk=1: steps=91 premature_ready=13 flips=8 final_ready=false
+  step 32 len=32 ready=true src_tail="flowchart T"
+  step 37 len=37 ready=false src_tail="flowchart TB\n  C"
+  step 46 len=46 ready=true src_tail="flowchart TB\n  C1[Client]"
+  step 50 len=50 ready=false src_tail="flowchart TB\n  C1[Client] -->"
+  step 52 len=52 ready=true src_tail="flowchart TB\n  C1[Client] --> P"
+  step 54 len=54 ready=false src_tail="flowchart TB\n  C1[Client] --> P1["
+  step 71 len=71 ready=true src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P"
+  step 73 len=73 ready=false src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P1["
+stream chunk=4: steps=23 premature_ready=3 flips=4 final_ready=false
+  step 9 len=33 ready=true src_tail="flowchart TB"
+  step 10 len=37 ready=false src_tail="flowchart TB\n  C"
+  step 13 len=49 ready=true src_tail="flowchart TB\n  C1[Client] --"
+  step 15 len=57 ready=false src_tail="flowchart TB\n  C1[Client] --> P1[ C1"
+stream chunk=16: steps=6 premature_ready=2 flips=2 final_ready=false
+  step 3 len=33 ready=true src_tail="flowchart TB"
+  step 5 len=65 ready=false src_tail="flowchart TB\n  C1[Client] --> P1[ C1[Client]"
+stream per-line: steps=5 premature_ready=1 flips=2 final_ready=false
+  line 2 ready=true tail="flowchart TB"
+  line 3 ready=false tail="flowchart TB\n  C1[Client] --> P1[ C1[Client] --> P1[Prox"
+
+--- flowchart_duplicate_nodes ---
+note: P[Proxy] P[Proxy] on same line
+widget_chars: 107
+mermaid_chars: 73
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+flowchart TB
+  subgraph access[Access layer]
+    P[Proxy] P[Proxy]
+  end
+
+
+NORMALIZED mermaid:
+flowchart TB
+  subgraph access[Access layer]
+    P[Proxy]
+  end
+
+stream chunk=1: steps=107 premature_ready=19 flips=3 final_ready=true
+  step 32 len=32 ready=true src_tail="flowchart T"
+  step 37 len=37 ready=false src_tail="flowchart TB\n  s"
+  step 93 len=93 ready=true src_tail="\n  subgraph access[Access layer]\n    P[Proxy] P[Proxy]\n  end"
+stream chunk=4: steps=27 premature_ready=5 flips=3 final_ready=true
+  step 9 len=33 ready=true src_tail="flowchart TB"
+  step 10 len=37 ready=false src_tail="flowchart TB\n  s"
+  step 24 len=93 ready=true src_tail="\n  subgraph access[Access layer]\n    P[Proxy] P[Proxy]\n  end"
+stream chunk=16: steps=7 premature_ready=2 flips=3 final_ready=true
+  step 3 len=33 ready=true src_tail="flowchart TB"
+  step 4 len=49 ready=false src_tail="flowchart TB\n  subgraph acce"
+  step 7 len=97 ready=true src_tail="  subgraph access[Access layer]\n    P[Proxy] P[Proxy]\n  end\n"
+stream per-line: steps=7 premature_ready=3 flips=3 final_ready=true
+  line 2 ready=true tail="flowchart TB"
+  line 3 ready=false tail="flowchart TB\n  subgraph access[Access layer]"
+  line 5 ready=true tail="\n  subgraph access[Access layer]\n    P[Proxy] P[Proxy]\n  end"
+
+--- sequence_milvus_corrupt ---
+note: Milvus insert path — streamed corruption
+widget_chars: 465
+mermaid_chars: 431
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+sequenceDiagram
+  participant C as Client
+  participant P as Proxy
+  participant DC as DataCoord
+  participant DN as DataNode
+  participant MQ as Message queue
+ Object storage  participant OS as Object storage
+
+  C->>P: insert / upsert
+ to WAL / channels  P->>MQ: append to WAL / channels
+: assign segments /  DC-->>P: assign segments / channels
+>MQ: consume insert  DN->>MQ: consume insert stream
+  DN->>OS: flush sealed segments
+
+
+NORMALIZED mermaid:
+sequenceDiagram
+  participant C as Client
+  participant P as Proxy
+  participant DC as DataCoord
+  participant DN as DataNode
+  participant MQ as Message queue
+  participant OS as Object storage
+  C->>P: insert / upsert
+ P->>MQ: append to WAL / channels
+DC-->>P: assign segments / channels
+DN->>MQ: consume insert stream
+  DN->>OS: flush sealed segments
+
+stream chunk=1: steps=465 premature_ready=399 flips=23 final_ready=true
+  step 36 len=36 ready=true src_tail="sequenceDiagram"
+  step 50 len=50 ready=false src_tail="sequenceDiagram\n  participant"
+  step 52 len=52 ready=true src_tail="sequenceDiagram\n  participant C"
+  step 76 len=76 ready=false src_tail="sequenceDiagram\n  participant C as Client\n  participant"
+  step 78 len=78 ready=true src_tail="sequenceDiagram\n  participant C as Client\n  participant P"
+  step 101 len=101 ready=false src_tail="rticipant C as Client\n  participant P as Proxy\n  participant"
+  step 103 len=103 ready=true src_tail="icipant C as Client\n  participant P as Proxy\n  participant D"
+  step 131 len=131 ready=false src_tail="ipant P as Proxy\n  participant DC as DataCoord\n  participant"
+  step 133 len=133 ready=true src_tail="ant P as Proxy\n  participant DC as DataCoord\n  participant D"
+  step 160 len=160 ready=false src_tail="t DC as DataCoord\n  participant DN as DataNode\n  participant"
+  step 162 len=162 ready=true src_tail="DC as DataCoord\n  participant DN as DataNode\n  participant M"
+  step 210 len=210 ready=false src_tail="articipant MQ as Message queue\n Object storage  participant "
+stream chunk=4: steps=117 premature_ready=99 flips=13 final_ready=true
+  step 10 len=37 ready=true src_tail="sequenceDiagram\n"
+  step 20 len=77 ready=false src_tail="sequenceDiagram\n  participant C as Client\n  participant "
+  step 21 len=81 ready=true src_tail="sequenceDiagram\n  participant C as Client\n  participant P as"
+  step 26 len=101 ready=false src_tail="rticipant C as Client\n  participant P as Proxy\n  participant"
+  step 27 len=105 ready=true src_tail="ipant C as Client\n  participant P as Proxy\n  participant DC "
+  step 41 len=161 ready=false src_tail=" DC as DataCoord\n  participant DN as DataNode\n  participant "
+  step 42 len=165 ready=true src_tail="as DataCoord\n  participant DN as DataNode\n  participant MQ a"
+  step 71 len=281 ready=false src_tail="t storage\n\n  C->>P: insert / upsert\n to WAL / channels  P->>"
+  step 73 len=289 ready=true src_tail="e\n\n  C->>P: insert / upsert\n to WAL / channels  P->>MQ: appe"
+  step 85 len=337 ready=false src_tail="P->>MQ: append to WAL / channels\n: assign segments /  DC-->>"
+  step 86 len=341 ready=true src_tail="MQ: append to WAL / channels\n: assign segments /  DC-->>P: a"
+  step 99 len=393 ready=false src_tail="-->>P: assign segments / channels\n>MQ: consume insert  DN->>"
+stream chunk=16: steps=30 premature_ready=24 flips=5 final_ready=true
+  step 4 len=49 ready=true src_tail="sequenceDiagram\n  participan"
+  step 11 len=161 ready=false src_tail=" DC as DataCoord\n  participant DN as DataNode\n  participant "
+  step 12 len=177 ready=true src_tail="\n  participant DN as DataNode\n  participant MQ as Message qu"
+  step 22 len=337 ready=false src_tail="P->>MQ: append to WAL / channels\n: assign segments /  DC-->>"
+  step 23 len=353 ready=true src_tail="o WAL / channels\n: assign segments /  DC-->>P: assign segmen"
+stream per-line: steps=16 premature_ready=14 flips=1 final_ready=true
+  line 2 ready=true tail="sequenceDiagram"
+
+--- sequence_participant_smash ---
+widget_chars: 97
+mermaid_chars: 63
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+sequenceDiagram
+  participant E as etcd C->>P: insert / upsert
+
+
+NORMALIZED mermaid:
+sequenceDiagram
+participant E as etcd
+C->>P: insert / upsert
+
+stream chunk=1: steps=97 premature_ready=57 flips=5 final_ready=true
+  step 36 len=36 ready=true src_tail="sequenceDiagram"
+  step 50 len=50 ready=false src_tail="sequenceDiagram\n  participant"
+  step 52 len=52 ready=true src_tail="sequenceDiagram\n  participant E"
+  step 65 len=65 ready=false src_tail="sequenceDiagram\n  participant E as etcd C->>"
+  step 67 len=67 ready=true src_tail="sequenceDiagram\n  participant E as etcd C->>P:"
+stream chunk=4: steps=25 premature_ready=14 flips=3 final_ready=true
+  step 10 len=37 ready=true src_tail="sequenceDiagram\n"
+  step 17 len=65 ready=false src_tail="sequenceDiagram\n  participant E as etcd C->>"
+  step 18 len=69 ready=true src_tail="sequenceDiagram\n  participant E as etcd C->>P: i"
+stream chunk=16: steps=7 premature_ready=2 flips=3 final_ready=true
+  step 4 len=49 ready=true src_tail="sequenceDiagram\n  participan"
+  step 5 len=65 ready=false src_tail="sequenceDiagram\n  participant E as etcd C->>"
+  step 6 len=81 ready=true src_tail="sequenceDiagram\n  participant E as etcd C->>P: insert / upse"
+stream per-line: steps=5 premature_ready=3 flips=1 final_ready=true
+  line 2 ready=true tail="sequenceDiagram"
+
+--- flowchart_milvus_architecture_corrupt ---
+note: User report — graph/subgraph smash + cylinder nodes
+widget_chars: 675
+mermaid_chars: 641
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+flowchart TB
+graph client[Client]  subgraph client[Client]
+SDK / REST / gRPC    SDK[SDK / REST / gRPC]
+  end
+  subgraph access[Access layer]
+    Proxy[Proxy]
+  end
+  subgraph control[Control plane]
+    Coord[Coordinators]
+[(Meta store    Meta[(Meta store)]
+  end
+  subgraph data[Data plane]
+    Stream[StreamingNode]
+    Query[QueryNode]
+    DataN[DataNode]
+  end
+graph storage[Storage  subgraph storage[Storage]
+ Obj[(Object storage    Obj[(Object storage)]
+ WAL[(    WAL[(WAL / MQ)]
+  end
+  SDK --> Proxy
+  Proxy --> Coord
+  Coord --> Meta
+  Proxy --> Stream
+  Stream --> WAL
+  Stream --> Obj
+  Query --> Obj
+ DataN --> Obj  DataN --> Obj
+
+
+NORMALIZED mermaid:
+flowchart TB
+subgraph client[Client]
+SDK[SDK / REST / gRPC]
+  end
+  subgraph access[Access layer]
+    Proxy[Proxy]
+  end
+  subgraph control[Control plane]
+    Coord[Coordinators]
+Meta[(Meta store)]
+  end
+  subgraph data[Data plane]
+    Stream[StreamingNode]
+    Query[QueryNode]
+    DataN[DataNode]
+  end
+subgraph storage[Storage]
+ Obj[(Object storage)]
+ WAL[(WAL / MQ)]
+  end
+  SDK --> Proxy
+  Proxy --> Coord
+  Coord --> Meta
+  Proxy --> Stream
+  Stream --> WAL
+  Stream --> Obj
+  Query --> Obj
+ DataN --> Obj
+
+stream chunk=1: steps=675 premature_ready=99 flips=29 final_ready=true
+  step 32 len=32 ready=true src_tail="flowchart T"
+  step 35 len=35 ready=false src_tail="flowchart TB\ng"
+  step 129 len=129 ready=true src_tail="nt[Client]\nSDK / REST / gRPC    SDK[SDK / REST / gRPC]\n  end"
+  step 133 len=133 ready=false src_tail="lient]\nSDK / REST / gRPC    SDK[SDK / REST / gRPC]\n  end\n  s"
+  step 184 len=184 ready=true src_tail="  end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end"
+  step 188 len=188 ready=false src_tail="d\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end\n  s"
+  step 283 len=283 ready=true src_tail="Coord[Coordinators]\n[(Meta store    Meta[(Meta store)]\n  end"
+  step 287 len=287 ready=false src_tail="d[Coordinators]\n[(Meta store    Meta[(Meta store)]\n  end\n  s"
+  step 384 len=384 ready=true src_tail="treamingNode]\n    Query[QueryNode]\n    DataN[DataNode]\n  end"
+  step 386 len=386 ready=false src_tail="eamingNode]\n    Query[QueryNode]\n    DataN[DataNode]\n  end\ng"
+  step 511 len=511 ready=true src_tail="age    Obj[(Object storage)]\n WAL[(    WAL[(WAL / MQ)]\n  end"
+  step 515 len=515 ready=false src_tail="   Obj[(Object storage)]\n WAL[(    WAL[(WAL / MQ)]\n  end\n  S"
+stream chunk=4: steps=169 premature_ready=27 flips=29 final_ready=true
+  step 9 len=33 ready=true src_tail="flowchart TB"
+  step 10 len=37 ready=false src_tail="flowchart TB\ngra"
+  step 33 len=129 ready=true src_tail="nt[Client]\nSDK / REST / gRPC    SDK[SDK / REST / gRPC]\n  end"
+  step 34 len=133 ready=false src_tail="lient]\nSDK / REST / gRPC    SDK[SDK / REST / gRPC]\n  end\n  s"
+  step 47 len=185 ready=true src_tail=" end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end\n"
+  step 48 len=189 ready=false src_tail="\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end\n  su"
+  step 72 len=285 ready=true src_tail="ord[Coordinators]\n[(Meta store    Meta[(Meta store)]\n  end\n "
+  step 73 len=289 ready=false src_tail="Coordinators]\n[(Meta store    Meta[(Meta store)]\n  end\n  sub"
+  step 97 len=385 ready=true src_tail="reamingNode]\n    Query[QueryNode]\n    DataN[DataNode]\n  end\n"
+  step 98 len=389 ready=false src_tail="ingNode]\n    Query[QueryNode]\n    DataN[DataNode]\n  end\ngrap"
+  step 129 len=513 ready=true src_tail="e    Obj[(Object storage)]\n WAL[(    WAL[(WAL / MQ)]\n  end\n "
+  step 130 len=517 ready=false src_tail=" Obj[(Object storage)]\n WAL[(    WAL[(WAL / MQ)]\n  end\n  SDK"
+stream chunk=16: steps=43 premature_ready=9 flips=9 final_ready=true
+  step 3 len=33 ready=true src_tail="flowchart TB"
+  step 4 len=49 ready=false src_tail="flowchart TB\ngraph client[Cl"
+  step 9 len=129 ready=true src_tail="nt[Client]\nSDK / REST / gRPC    SDK[SDK / REST / gRPC]\n  end"
+  step 10 len=145 ready=false src_tail=" REST / gRPC    SDK[SDK / REST / gRPC]\n  end\n  subgraph acce"
+  step 25 len=385 ready=true src_tail="reamingNode]\n    Query[QueryNode]\n    DataN[DataNode]\n  end\n"
+  step 26 len=401 ready=false src_tail=" Query[QueryNode]\n    DataN[DataNode]\n  end\ngraph storage[St"
+  step 33 len=513 ready=true src_tail="e    Obj[(Object storage)]\n WAL[(    WAL[(WAL / MQ)]\n  end\n "
+  step 38 len=593 ready=false src_tail="xy --> Coord\n  Coord --> Meta\n  Proxy --> Stream\n  Stream --"
+  step 43 len=673 ready=true src_tail="tream --> Obj\n  Query --> Obj\n DataN --> Obj  DataN --> Obj\n"
+stream per-line: steps=31 premature_ready=15 flips=11 final_ready=true
+  line 2 ready=true tail="flowchart TB"
+  line 3 ready=false tail="flowchart TB\ngraph client[Client]  subgraph client[Client]"
+  line 5 ready=true tail="nt[Client]\nSDK / REST / gRPC    SDK[SDK / REST / gRPC]\n  end"
+  line 6 ready=false tail="SDK[SDK / REST / gRPC]\n  end\n  subgraph access[Access layer]"
+  line 8 ready=true tail="  end\n  subgraph access[Access layer]\n    Proxy[Proxy]\n  end"
+  line 9 ready=false tail="er]\n    Proxy[Proxy]\n  end\n  subgraph control[Control plane]"
+  line 12 ready=true tail="Coord[Coordinators]\n[(Meta store    Meta[(Meta store)]\n  end"
+  line 13 ready=false tail="tore    Meta[(Meta store)]\n  end\n  subgraph data[Data plane]"
+  line 17 ready=true tail="treamingNode]\n    Query[QueryNode]\n    DataN[DataNode]\n  end"
+  line 18 ready=false tail="Node]\n  end\ngraph storage[Storage  subgraph storage[Storage]"
+  line 21 ready=true tail="age    Obj[(Object storage)]\n WAL[(    WAL[(WAL / MQ)]\n  end"
+
+--- flowchart_milvus_tiered_bracket_smash ---
+note: User report — bracket prose + multiline labels + deps smash
+widget_chars: 669
+mermaid_chars: 635
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+flowchart TB
+[Access layer  subgraph access[Access layer]
+    SDK[Client SDK]
+    Proxy[Proxy]
+  end
+  subgraph coord[Coordinator layer]
+[MixCoord\n(root+data    Mix[MixCoord\n(root+data+query)]
+  end
+[Worker layer]  subgraph workers[Worker layer]
+    SN[StreamingNode]
+    QN[QueryNode]
+    DN[DataNode]
+  end
+graph deps[  subgraph deps[Shared dependencies]
+[Meta store\n(etcd)]    Meta[Meta store\n(etcd)]
+3/Min    Obj[Object storage\n(S3/MinIO)]
+\n(Wood    WAL[WAL storage\n(Woodpecker)]
+  end
+  SDK --> Proxy
+  Proxy --> Mix
+  Mix --> SN
+  Mix --> QN
+  Mix --> DN
+  Mix --> Meta
+  SN --> WAL
+  SN --> Obj
+  QN --> Obj
+  DN --> Obj
+
+
+NORMALIZED mermaid:
+flowchart TB
+subgraph access[Access layer]
+    SDK[Client SDK]
+    Proxy[Proxy]
+  end
+  subgraph coord[Coordinator layer]
+Mix[MixCoord\n(root+data+query)]
+  end
+subgraph workers[Worker layer]
+    SN[StreamingNode]
+    QN[QueryNode]
+    DN[DataNode]
+  end
+subgraph deps[Shared dependencies]
+Meta[Meta store\n(etcd)]
+Obj[Object storage\n(S3/MinIO)]
+WAL[WAL storage\n(Woodpecker)]
+  end
+  SDK --> Proxy
+  Proxy --> Mix
+  Mix --> SN
+  Mix --> QN
+  Mix --> DN
+  Mix --> Meta
+  SN --> WAL
+  SN --> Obj
+  QN --> Obj
+  DN --> Obj
+
+stream chunk=1: steps=669 premature_ready=85 flips=29 final_ready=true
+  step 32 len=32 ready=true src_tail="flowchart T"
+  step 35 len=35 ready=false src_tail="flowchart TB\n["
+  step 121 len=121 ready=true src_tail="ess[Access layer]\n    SDK[Client SDK]\n    Proxy[Proxy]\n  end"
+  step 125 len=125 ready=false src_tail="Access layer]\n    SDK[Client SDK]\n    Proxy[Proxy]\n  end\n  s"
+  step 221 len=221 ready=true src_tail="xCoord\\n(root+data    Mix[MixCoord\\n(root+data+query)]\n  end"
+  step 223 len=223 ready=false src_tail="oord\\n(root+data    Mix[MixCoord\\n(root+data+query)]\n  end\n["
+  step 331 len=331 ready=true src_tail="  SN[StreamingNode]\n    QN[QueryNode]\n    DN[DataNode]\n  end"
+  step 333 len=333 ready=false src_tail="SN[StreamingNode]\n    QN[QueryNode]\n    DN[DataNode]\n  end\ng"
+  step 517 len=517 ready=true src_tail="n(S3/MinIO)]\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end"
+  step 521 len=521 ready=false src_tail="/MinIO)]\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end\n  S"
+  step 529 len=529 ready=true src_tail="\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end\n  SDK --> P"
+  step 537 len=537 ready=false src_tail="    WAL[WAL storage\\n(Woodpecker)]\n  end\n  SDK --> Proxy\n  P"
+stream chunk=4: steps=168 premature_ready=21 flips=27 final_ready=true
+  step 9 len=33 ready=true src_tail="flowchart TB"
+  step 10 len=37 ready=false src_tail="flowchart TB\n[Ac"
+  step 31 len=121 ready=true src_tail="ess[Access layer]\n    SDK[Client SDK]\n    Proxy[Proxy]\n  end"
+  step 32 len=125 ready=false src_tail="Access layer]\n    SDK[Client SDK]\n    Proxy[Proxy]\n  end\n  s"
+  step 56 len=221 ready=true src_tail="xCoord\\n(root+data    Mix[MixCoord\\n(root+data+query)]\n  end"
+  step 57 len=225 ready=false src_tail="rd\\n(root+data    Mix[MixCoord\\n(root+data+query)]\n  end\n[Wo"
+  step 130 len=517 ready=true src_tail="n(S3/MinIO)]\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end"
+  step 131 len=521 ready=false src_tail="/MinIO)]\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end\n  S"
+  step 133 len=529 ready=true src_tail="\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end\n  SDK --> P"
+  step 135 len=537 ready=false src_tail="    WAL[WAL storage\\n(Woodpecker)]\n  end\n  SDK --> Proxy\n  P"
+  step 138 len=549 ready=true src_tail="storage\\n(Woodpecker)]\n  end\n  SDK --> Proxy\n  Proxy --> Mix"
+  step 139 len=553 ready=false src_tail="age\\n(Woodpecker)]\n  end\n  SDK --> Proxy\n  Proxy --> Mix\n  M"
+stream chunk=16: steps=42 premature_ready=6 flips=7 final_ready=true
+  step 3 len=33 ready=true src_tail="flowchart TB"
+  step 4 len=49 ready=false src_tail="flowchart TB\n[Access layer  "
+  step 34 len=529 ready=true src_tail="\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end\n  SDK --> P"
+  step 35 len=545 ready=false src_tail="WAL storage\\n(Woodpecker)]\n  end\n  SDK --> Proxy\n  Proxy -->"
+  step 36 len=561 ready=true src_tail="odpecker)]\n  end\n  SDK --> Proxy\n  Proxy --> Mix\n  Mix --> S"
+  step 38 len=593 ready=false src_tail="\n  Proxy --> Mix\n  Mix --> SN\n  Mix --> QN\n  Mix --> DN\n  Mi"
+  step 41 len=641 ready=true src_tail=" --> DN\n  Mix --> Meta\n  SN --> WAL\n  SN --> Obj\n  QN --> Ob"
+stream per-line: steps=31 premature_ready=16 flips=9 final_ready=true
+  line 2 ready=true tail="flowchart TB"
+  line 3 ready=false tail="flowchart TB\n[Access layer  subgraph access[Access layer]"
+  line 6 ready=true tail="ess[Access layer]\n    SDK[Client SDK]\n    Proxy[Proxy]\n  end"
+  line 7 ready=false tail="]\n    Proxy[Proxy]\n  end\n  subgraph coord[Coordinator layer]"
+  line 9 ready=true tail="xCoord\\n(root+data    Mix[MixCoord\\n(root+data+query)]\n  end"
+  line 10 ready=false tail="query)]\n  end\n[Worker layer]  subgraph workers[Worker layer]"
+  line 14 ready=true tail="  SN[StreamingNode]\n    QN[QueryNode]\n    DN[DataNode]\n  end"
+  line 15 ready=false tail="aNode]\n  end\ngraph deps[  subgraph deps[Shared dependencies]"
+  line 19 ready=true tail="n(S3/MinIO)]\n\\n(Wood    WAL[WAL storage\\n(Woodpecker)]\n  end"
+
+--- sequence_milvus_query_corrupt ---
+note: User report — Q-->>P Q-->>P: historical results smash
+widget_chars: 438
+mermaid_chars: 404
+final_ready: true
+reject_reasons: (none)
+
+RAW mermaid:
+sequenceDiagram
+  participant C as Client
+  participant P as Proxy
+  participant S as StreamingNode
+  participant Q as QueryNode
+  participant O as Object storage
+  C->>P: search / query
+ P->>S: incremental part  P->>S: incremental part
+  P->>Q: historical part
+>O: load/read  Q->>O: load/read segments & indexes
+ Q-->>P  Q-->>P: historical results
+  S-->>P: incremental results
+  P-->>C: merged results
+
+
+NORMALIZED mermaid:
+sequenceDiagram
+  participant C as Client
+  participant P as Proxy
+  participant S as StreamingNode
+  participant Q as QueryNode
+  participant O as Object storage
+  C->>P: search / query
+ P->>S: incremental part
+  P->>Q: historical part
+Q->>O: load/read segments & indexes
+ Q-->>P: historical results
+  S-->>P: incremental results
+  P-->>C: merged results
+
+stream chunk=1: steps=438 premature_ready=370 flips=27 final_ready=true
+  step 36 len=36 ready=true src_tail="sequenceDiagram"
+  step 50 len=50 ready=false src_tail="sequenceDiagram\n  participant"
+  step 52 len=52 ready=true src_tail="sequenceDiagram\n  participant C"
+  step 76 len=76 ready=false src_tail="sequenceDiagram\n  participant C as Client\n  participant"
+  step 78 len=78 ready=true src_tail="sequenceDiagram\n  participant C as Client\n  participant P"
+  step 101 len=101 ready=false src_tail="rticipant C as Client\n  participant P as Proxy\n  participant"
+  step 103 len=103 ready=true src_tail="icipant C as Client\n  participant P as Proxy\n  participant S"
+  step 134 len=134 ready=false src_tail="nt P as Proxy\n  participant S as StreamingNode\n  participant"
+  step 136 len=136 ready=true src_tail=" P as Proxy\n  participant S as StreamingNode\n  participant Q"
+  step 163 len=163 ready=false src_tail=" as StreamingNode\n  participant Q as QueryNode\n  participant"
+  step 165 len=165 ready=true src_tail="s StreamingNode\n  participant Q as QueryNode\n  participant O"
+  step 190 len=190 ready=false src_tail="pant Q as QueryNode\n  participant O as Object storage\n  C->>"
+stream chunk=4: steps=110 premature_ready=93 flips=17 final_ready=true
+  step 10 len=37 ready=true src_tail="sequenceDiagram\n"
+  step 20 len=77 ready=false src_tail="sequenceDiagram\n  participant C as Client\n  participant "
+  step 21 len=81 ready=true src_tail="sequenceDiagram\n  participant C as Client\n  participant P as"
+  step 26 len=101 ready=false src_tail="rticipant C as Client\n  participant P as Proxy\n  participant"
+  step 27 len=105 ready=true src_tail="ipant C as Client\n  participant P as Proxy\n  participant S a"
+  step 54 len=213 ready=false src_tail="articipant O as Object storage\n  C->>P: search / query\n P->>"
+  step 55 len=217 ready=true src_tail="cipant O as Object storage\n  C->>P: search / query\n P->>S: i"
+  step 67 len=265 ready=false src_tail="ry\n P->>S: incremental part  P->>S: incremental part\n  P->>Q"
+  step 68 len=269 ready=true src_tail="P->>S: incremental part  P->>S: incremental part\n  P->>Q: hi"
+  step 77 len=305 ready=false src_tail="emental part\n  P->>Q: historical part\n>O: load/read  Q->>O: "
+  step 78 len=309 ready=true src_tail="tal part\n  P->>Q: historical part\n>O: load/read  Q->>O: load"
+  step 86 len=341 ready=false src_tail="t\n>O: load/read  Q->>O: load/read segments & indexes\n Q-->>P"
+stream chunk=16: steps=28 premature_ready=24 flips=3 final_ready=true
+  step 4 len=49 ready=true src_tail="sequenceDiagram\n  participan"
+  step 20 len=305 ready=false src_tail="emental part\n  P->>Q: historical part\n>O: load/read  Q->>O: "
+  step 21 len=321 ready=true src_tail="->>Q: historical part\n>O: load/read  Q->>O: load/read segmen"
+stream per-line: steps=16 premature_ready=14 flips=1 final_ready=true
+  line 2 ready=true tail="sequenceDiagram"
+
+--- LIVE INPUT (live-widget-input.txt) ---
+--- live_widget ---
+widget_chars: 1
+mermaid_chars: 0
+final_ready: false
+reject_reasons: no source
+
+RAW mermaid:
+(empty)
+
+NORMALIZED mermaid:
+(empty)
+
+stream chunk=1: steps=1 premature_ready=0 flips=0 final_ready=false
+stream chunk=4: steps=1 premature_ready=0 flips=0 final_ready=false
+stream chunk=16: steps=1 premature_ready=0 flips=0 final_ready=false
+stream per-line: steps=1 premature_ready=0 flips=0 final_ready=false
+
+--- MOCK MERMAID RENDER (final sources only) ---
+flowchart_tiered_ok: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+flowchart_smash_repaired: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+flowchart_smash_partial: render_called=0 mount=(empty)
+flowchart_duplicate_nodes: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+sequence_milvus_corrupt: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+sequence_participant_smash: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+flowchart_milvus_architecture_corrupt: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+flowchart_milvus_tiered_bracket_smash: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+sequence_milvus_query_corrupt: render_called=1 mount=<div class="kn-mermaid-wrap" style="max-width:100%;overflow-x:auto;overflow-y:visible;"><svg data-ok="1"></svg></div>
+
+=== END ===

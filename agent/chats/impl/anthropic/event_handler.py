@@ -124,7 +124,7 @@ class ContentBlockDeltaEventHandler(
             )
             return
         if isinstance(delta, CitationsDelta | SignatureDelta):
-            logger.debug("%s", delta.model_dump_json())
+            logger.debug("Unhandled delta type", delta=delta.model_dump_json())
             return
 
 

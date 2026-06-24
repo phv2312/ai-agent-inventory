@@ -1,8 +1,8 @@
 import json
 from typing import Literal
 
-from agent.citations.matcher import find_quote_span
 from agent.models.streams import FunctionCallOutput
+from agent.services.citations.matcher import find_quote_span
 from agent.storages.config import AnchorFields
 from agent.storages.vectordb.milvus import Milvus
 from agent.tools.acts.models import BaseToolCall, IToolAct, ToolActResult

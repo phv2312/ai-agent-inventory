@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Literal
 
 from rich.console import Console
@@ -39,7 +40,7 @@ class SearchAct(IToolAct[SearchToolCall]):
         if len(embeddings) == 0:
             raise ValueError("Query embedding is empty")
 
-        filtered_dict: dict[str, list[str | int]] | None = None
+        filtered_dict: dict[str, Sequence[str | int]] | None = None
         if self.file_ids:
             filtered_dict = {AnchorFields.FILE_ID: list(self.file_ids)}
         if tool_call.params.doc_names:

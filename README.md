@@ -11,26 +11,121 @@ An AI-powered agent inventory — modular components for building production-gra
 
 ## Demo
 
-### Internal KB + Web Search
+### Knowledge Base + Diagram
 
-![Internal KB and web search](assets/screenshots/internal-kb-websearch.png)
+![Milvus architecture query](assets/screenshots/milvus-query.gif)
 
-The agent automatically routes queries between the indexed knowledge base and live web search, citing exact source chunks inline.
+Ask questions over indexed documents — the agent retrieves relevant chunks, cites sources inline, and can render architecture diagrams directly in the chat panel.
 
-### Inline Visuals
+### Document RAG + Inline Charts
 
-![Inline visual generation](assets/screenshots/inline-visual.gif)
+![HPG financial query with chart](assets/screenshots/hpg-query.gif)
 
-When the answer benefits from a chart or diagram, the agent generates an interactive widget rendered directly in the chat panel.
+Query structured data from uploaded PDFs (e.g. quarterly earnings reports). When a visual helps, the agent generates an interactive chart widget inline alongside cited answers.
 
 ---
 
-## Installation
+## Getting started
+
+### Prerequisites
+
+- **Python 3.12+**
+- **Node.js 20+** (for the React chat UI)
+- **[uv](https://docs.astral.sh/uv/)** — Python package manager
+
+### 1. Backend
 
 ```bash
+# Install uv (skip if already installed)
 pip install uv
+
+# Create .venv and install dependencies (includes dev tools)
 uv sync
-source ./venv/bin/activate
+
+# Activate the virtual environment
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+```
+
+### 2. Environment variables
+
+Create a `.env` file at the repo root with your keys (see template below).
+Settings are read from the **process environment**, so load the file before
+starting the API:
+
+```bash
+set -a && source .env && set +a   # macOS / Linux
+python main_run_api.py
+```
+
+```dotenv
+# Azure OpenAI (required)
+OPENAI_API_KEY=
+OPENAI_AZURE_ENDPOINT=https://<resource>.openai.azure.com
+OPENAI_API_VERSION=2024-02-01
+OPENAI_CHAT_DEPLOYMENT_NAME=gpt-4.1
+OPENAI_EMBEDDING_DEPLOYMENT_NAME=text-embedding-3-small
+
+# Milvus Lite (required — local vector store)
+MILVUS_DB_URI=./milvus.db
+MILVUS_DB_COLLECTION_NAME=agent_inventory
+
+# Tavily web search (required for live web search tool)
+TAVILY_API_KEY=
+
+# Anthropic (optional — only if using Anthropic chat models)
+ANTHROPIC_API_KEY=
+```
+
+Optional API settings (prefix `AGENT_API_`):
+
+| Variable | Default | Description |
+|:---------|:--------|:------------|
+| `AGENT_API_DATA_DIR` | `.agent-api-data` | SQLite DB, uploaded PDFs, and index images |
+| `AGENT_API_DATABASE_URL` | *(SQLite in data dir)* | Override with a custom async SQLAlchemy URL |
+
+### 3. Run the API
+
+```bash
+python main_run_api.py
+# or: uvicorn agent.api.main:app --reload --port 8080
+```
+
+- API: http://localhost:8080
+- Interactive docs: http://localhost:8080/docs
+
+See [agent/api/docs/integration-guide.md](agent/api/docs/integration-guide.md) for the full HTTP workflow (collections → PDF upload → chat).
+
+### 4. Frontend (chat UI)
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env`. Leave `VITE_API_BASE_URL` empty to use the Vite dev
+proxy (`/api` → `localhost:8080`), or set it explicitly:
+
+```dotenv
+VITE_API_BASE_URL=
+```
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173
+
+### 5. Development checks (optional)
+
+```bash
+# Install git hooks (ruff, mypy)
+pre-commit install
+
+# Backend tests
+pytest tests/ -q
+
+# Frontend widget-runtime tests + production build
+cd frontend && npm run test:widget-runtime && npm run build
 ```
 
 ---

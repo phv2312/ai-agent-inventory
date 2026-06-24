@@ -204,9 +204,9 @@ class AnthropicProvider(IChatModel):
                 case FunctionCallArgsDoneEvent():
                     if isinstance(event.item, WebSearchFunctionCall):
                         logger.info(
-                            "Web search[%s] done with status: %s",
-                            event.id,
-                            event.item.status,
+                            "Web search done",
+                            call_id=event.id,
+                            status=event.item.status,
                         )
                         continue
                     if event.id not in pending_function_call:

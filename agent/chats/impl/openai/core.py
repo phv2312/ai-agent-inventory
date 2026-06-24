@@ -177,9 +177,9 @@ class OpenAIProvider(IChatModel):
                 case FunctionCallArgsDoneEvent():
                     if isinstance(event.item, WebSearchFunctionCall):
                         logger.info(
-                            "Web search[%s] done with status: %s",
-                            event.id,
-                            event.item.status,
+                            "Web search done",
+                            call_id=event.id,
+                            status=event.item.status,
                         )
                         continue
                     pending_function_call[event.id] = event.item

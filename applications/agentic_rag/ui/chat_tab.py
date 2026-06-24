@@ -3,7 +3,7 @@ from typing import Any
 
 import gradio as gr
 
-from agent.citations import apply_snippet_highlights
+from agent.services.citations import apply_snippet_highlights
 from agent.deps.models import ProgramsModel
 from agent.models.messages import UserMessage
 from applications.agentic_rag.core.models import Conversation

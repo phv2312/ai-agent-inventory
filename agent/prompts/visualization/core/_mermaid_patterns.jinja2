@@ -1,0 +1,111 @@
+## KN.mermaid — declarative diagrams
+
+Use **`KN.mermaid(source)`** with a Mermaid DSL string for flowcharts, tiered architecture, sequence, and ER diagrams. Runtime lazy-loads Mermaid.js from cdnjs, applies dark theme, and debounces streaming re-renders.
+
+## Per-widget limits (agent guidance)
+
+| Limit | Max |
+|-------|-----|
+| **Nodes** | **8** per widget (flowchart nodes, sequence participants, ER entities) |
+
+### Node label quoting (required)
+
+Mermaid breaks on unquoted labels that contain **newlines** (`\n`), **parentheses**, `+`, `/`, or commas.
+
+| Wrong | Right |
+|-------|-------|
+| `Mix[MixCoord\n(Root+Data+Query)]` | `Mix["MixCoord\n(Root+Data+Query)"]` |
+| `SN[StreamingNode (WAL)]` | `SN["StreamingNode (WAL)"]` |
+
+Use **double-quoted** rectangle labels whenever the visible text is not a single plain word.
+
+If the full system needs more → **multiple inline fences**. **Never stack fences back-to-back** — always write answer prose between them (see multi-widget pacing in read_me).
+
+**Never** cram 10+ nodes into one Mermaid widget — layout gets cramped and unreadable in chat.
+
+### Multi-widget pacing
+
+When a topic needs more than one diagram iframe, **interleave text and fences**:
+
+```
+[Intro: what we're mapping]
+→ ```visualize:diagram fence (overview)
+[Bridge: what that showed + what the next slice covers]
+→ ```visualize:diagram fence (detail)
+[Optional: how the pieces connect]
+```
+
+- Prose lives in your **normal response**, not in the fence body.
+- Each bridge paragraph should stand alone — a reader who skips a diagram still knows why the next one exists.
+- **Forbidden:** consecutive fences with zero answer text between them.
+
+### Split strategy
+
+1. **Overview first** — 3–5 hub nodes across tiers (use `flowchart TB` + `subgraph` per tier).
+2. **Detail widgets** — one subsystem per iframe (auth flow, data path, worker layer, etc.).
+3. **Repeat anchor nodes** across widgets if needed — separate iframes, same labels are fine.
+4. **One primary flow per widget** — avoid every-node-connects-to-every-node meshes.
+
+### Tiered architecture (Milvus-style)
+
+```html
+<script>
+KN.mermaid(`flowchart TB
+  subgraph client[Client layer]
+    SDK[SDK / ORM]
+  end
+  subgraph access[Access layer]
+    Proxy[Proxy]
+  end
+  subgraph coord[Coordinator layer]
+    Mix["MixCoord\n(Root+Data+Query)"]
+  end
+  SDK --> Proxy
+  Proxy --> Mix
+`);
+</script>
+```
+
+### Simple flowchart
+
+```html
+<script>
+KN.mermaid(`flowchart TD
+  Start([Start]) --> Validate[Validate input]
+  Validate --> Process[Process]
+  Process --> End([End])
+`);
+</script>
+```
+
+### Sequence diagram
+
+```html
+<script>
+KN.mermaid(`sequenceDiagram
+  participant U as User
+  participant A as API
+  participant D as Database
+  U->>A: POST /query
+  A->>D: SELECT
+  D-->>A: rows
+  A-->>U: 200 OK
+`);
+</script>
+```
+
+### ER diagram
+
+```html
+<script>
+KN.mermaid(`erDiagram
+  USER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  PRODUCT ||--o{ LINE_ITEM : "ordered in"
+`);
+</script>
+```
+
+**Streaming**: open `<script>KN.mermaid(\`` early; stream complete lines (prefer whole subgraph blocks per tier); close `` `); `` before `</script>`.
+
+**Illustrative art** → raw SVG with css classes (not Mermaid).

@@ -1,14 +1,15 @@
 import asyncio
-import logging
 from concurrent.futures import Executor, ThreadPoolExecutor
 from typing import Any, Literal, TypedDict
+
+import structlog
 from pydantic import BaseModel
 from tavily import TavilyClient
 
 from agent.models.document import ScoredChunk, ScoredChunks, Chunk, WebsearchMetdata
 from agent.textsplitters import ITextSplitter, TextSplitterArguments
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class SearchResult(TypedDict):
@@ -69,7 +70,7 @@ class TavilyWebSearch:
         scored_chunks = []
         for result in response["results"]:
             if result["raw_content"] is None:
-                logger.warning("Result %s has no raw content", result["url"])
+                logger.warning("Result has no raw content", url=result["url"])
                 continue
 
             scored_chunks.append(

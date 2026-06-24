@@ -4,8 +4,8 @@ import html
 import re
 from collections.abc import AsyncGenerator
 
-from agent.citations import mp_chunk_id_snippets_from_items
-from agent.citations.inline import render_highlighted_body
+from agent.services.citations import mp_chunk_id_snippets_from_items
+from agent.services.citations.inline import render_highlighted_body
 from agent.deps import Container, VectorDBModel
 from agent.models.document import DocumentMetadata, ScoredChunk
 from agent.models.messages import AssistantMessage, UserMessage

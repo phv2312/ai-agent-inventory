@@ -111,6 +111,8 @@ class AgenticChatStrategy:
             internal_search=len(doc_names) > 0,
         )
 
+        logger.info("Tool definitions", tool_defs=tool_defs)
+
         chat_request = ChatRequest(
             model=resolved_model,
             messages=[*(history or []), UserMessage(content=query)],
