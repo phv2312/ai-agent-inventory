@@ -10,6 +10,9 @@ from agent.tools.schemas.registry import (
     ToolNames,
     VisualizeReadmeParameters,
 )
+from agent.tracer import tool_span, tracer_provider
+
+tracer = tracer_provider.get_tracer(__name__)
 
 
 class VisualizeReadmeToolCall(BaseToolCall[VisualizeReadmeParameters]):
@@ -33,16 +36,26 @@ class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
         self.readme_template = readme_template
         self.vis_templates = vis_templates
 
-    async def act(self, tool_call: VisualizeReadmeToolCall) -> ToolActResult:
+    async def act(
+        self,
+        tool_call: VisualizeReadmeToolCall,
+    ) -> ToolActResult:
         """Render and return the merged module guidelines."""
-        modules = tool_call.params.modules
-        yield f"Reading guidelines: {', '.join(modules)}\n\n"
+        with tool_span(
+            tracer,
+            "VisualizeReadmeAct.act",
+            tool_call,
+        ) as span:
+            modules = tool_call.params.modules
+            yield f"Reading guidelines: {', '.join(modules)}\n\n"
 
-        merged = "\n\n---\n\n".join(self.vis_templates[m].render() for m in modules)
-        response_str = self.readme_template.render(
-            vis_templates=merged,
-        )
-        yield FunctionCallOutput(
-            call_id=tool_call.id,
-            output=response_str,
-        )
+            merged = "\n\n---\n\n".join(self.vis_templates[m].render() for m in modules)
+            response_str = self.readme_template.render(
+                vis_templates=merged,
+            )
+            output = FunctionCallOutput(
+                call_id=tool_call.id,
+                output=response_str,
+            )
+            span.set_output(output)
+            yield output

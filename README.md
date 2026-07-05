@@ -128,6 +128,12 @@ pytest tests/ -q
 cd frontend && npm run test:widget-runtime && npm run build
 ```
 
+### 6. Evaluation benchmark
+
+The `evaluation/` package contains the 100-query agent benchmark, Phoenix trace
+capture, metric evaluation, Excel export, and visualization artifact extraction.
+See [evaluation/README.md](evaluation/README.md) for commands.
+
 ---
 
 ## Components

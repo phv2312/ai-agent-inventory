@@ -87,7 +87,9 @@ async def chat(
             message=text,
         )
 
-        await repos.messages.create(conversation_id, MessageRole.user, text)
+        user_message = await repos.messages.create(
+            conversation_id, MessageRole.user, text
+        )
 
         past = await repos.messages.list_by_conversation(conversation_id)
         history: list[UserMessage | AssistantMessage] = []
@@ -114,6 +116,8 @@ async def chat(
             model_name=model_name,
             web_search_enabled=web_search_enabled,
             system_prompt=system_prompt,
+            # keep track of user-message id for easier to trace the response
+            # request_id=user_message.id,
         ):
             if await request.is_disconnected():
                 return

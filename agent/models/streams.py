@@ -184,11 +184,24 @@ class MessageStartEvent(BaseModel):
     message_id: str
 
 
+class ResponseUsage(BaseModel):
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+
+
 class MessageDoneEvent(BaseModel):
     type: Literal[StreamEventType.MESSAGE_DONE] = StreamEventType.MESSAGE_DONE
     message_id: str
     stop_reason: str
     tools: list[FunctionCall]
+    usage: ResponseUsage = Field(
+        default_factory=lambda: ResponseUsage(
+            input_tokens=0,
+            output_tokens=0,
+            total_tokens=0,
+        ),
+    )
 
 
 class ErrorEvent(BaseModel):

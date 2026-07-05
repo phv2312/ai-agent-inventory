@@ -34,6 +34,7 @@ from agent.models.streams import (
     FunctionCallStartEvent,
     MessageDoneEvent,
     MessageStartEvent,
+    ResponseUsage,
     StreamEvent,
     TextDeltaEvent,
     TextDoneEvent,
@@ -230,6 +231,11 @@ class ParsedMessageStopEventHandler(
             message_id=scratch.message_id or event.message.id,
             stop_reason=stop_reason,
             tools=list(scratch.mp_id_function_call.values()),
+            usage=ResponseUsage(
+                input_tokens=event.message.usage.input_tokens,
+                output_tokens=event.message.usage.output_tokens,
+                total_tokens=event.message.usage.total_tokens,
+            ),
         )
 
 

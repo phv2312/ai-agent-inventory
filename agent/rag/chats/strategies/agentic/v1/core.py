@@ -3,20 +3,30 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Final
 
+from phoenix.otel import SpanAttributes as SA
 import structlog
 from jinja2 import Template
 
 from agent.models.document import DocumentMetadata, ScoredChunks
 from agent.models.messages import AssistantMessage, UserMessage
-from agent.models.streams import ChatRequest, StreamEvent, ToolDefinition
+from agent.models.streams import (
+    ChatRequest,
+    MessageDoneEvent,
+    ResponseUsage,
+    StreamEvent,
+    TextDeltaEvent,
+    ToolDefinition,
+)
 from agent.orchestrators import ReAct
 from agent.prompts.core import PromptsFactory
 from agent.rag.chats.deps import ChatDeps
 from agent.storages.config import AnchorFields
 from agent.tools.acts.registry import ToolActsRegistry
 from agent.tools.schemas.registry import ToolSchemaRegistry
+from agent.tracer import chain_span, format_trace_id, new_request_id, tracer_provider
 
 logger = structlog.get_logger()
+tracer = tracer_provider.get_tracer(__name__)
 
 
 @dataclass
@@ -87,47 +97,79 @@ class AgenticChatStrategy:
         memory_md_content: str = "",
         model_name: str | None = None,
         top_k: int | None = None,
+        request_id: str | None = None,
     ) -> AsyncGenerator[StreamEvent, None]:
-        resolved_top_k = top_k or self.settings.top_k
-        resolved_model = model_name or self.settings.model_name
-        if not resolved_model:
-            raise ValueError("model_name is required for agentic streaming")
-
-        actor_registry = ToolActsRegistry(
-            milvus=self.deps.vectordb,
-            embedding_model=self.deps.embedding_model,
+        rid = request_id or new_request_id()
+        with chain_span(
+            tracer,
+            "AgenticChatStrategy.stream_async_answer",
+            query,
+            request_id=rid,
             file_ids=file_ids,
-            top_k=resolved_top_k,
-        )
+        ) as span:
+            logger.info(
+                "agent request started",
+                request_id=rid,
+                trace_id=format_trace_id(span.get_span_context().trace_id),
+            )
+            accelerated_text = ""
+            resolved_top_k = top_k or self.settings.top_k
+            resolved_model = model_name or self.settings.model_name
+            if not resolved_model:
+                raise ValueError(
+                    "model_name is required for agentic streaming",
+                )
 
-        doc_names = await self.utils.get_doc_names(file_ids)
-        logger.info(
-            "Retrieved doc names for given file ids",
-            file_ids=file_ids,
-            doc_names=doc_names,
-        )
+            actor_registry = ToolActsRegistry(
+                milvus=self.deps.vectordb,
+                embedding_model=self.deps.embedding_model,
+                file_ids=file_ids,
+                top_k=resolved_top_k,
+            )
 
-        tool_defs = tools or ToolSchemaRegistry.agentic_tools(
-            internal_search=len(doc_names) > 0,
-        )
+            doc_names = await self.utils.get_doc_names(file_ids)
+            logger.info(
+                "Retrieved doc names for given file ids",
+                file_ids=file_ids,
+                doc_names=doc_names,
+            )
 
-        logger.info("Tool definitions", tool_defs=tool_defs)
+            tool_defs = tools or ToolSchemaRegistry.agentic_tools(
+                internal_search=len(doc_names) > 0,
+            )
 
-        chat_request = ChatRequest(
-            model=resolved_model,
-            messages=[*(history or []), UserMessage(content=query)],
-            tools=tool_defs,
-            temperature=self.settings.temperature,
-            instructions=self.template.render(
-                doc_names=";".join(doc_names),
-                memory_md_content=memory_md_content,
-            ),
-        )
+            logger.info("Tool definitions", tool_defs=tool_defs)
 
-        async for event in ReAct(
-            streamer=self.deps.stream_provider,
-            request=chat_request,
-            actor_registry=actor_registry,
-            max_turns=self.settings.max_turns,
-        ).stream():
-            yield event
+            chat_request = ChatRequest(
+                model=resolved_model,
+                messages=[*(history or []), UserMessage(content=query)],
+                tools=tool_defs,
+                temperature=self.settings.temperature,
+                instructions=self.template.render(
+                    doc_names=";".join(doc_names),
+                    memory_md_content=memory_md_content,
+                ),
+            )
+
+            usage: ResponseUsage | None = None
+            async for event in ReAct(
+                streamer=self.deps.stream_provider,
+                request=chat_request,
+                actor_registry=actor_registry,
+                max_turns=self.settings.max_turns,
+            ).stream():
+                if isinstance(event, TextDeltaEvent):
+                    accelerated_text += event.content
+                elif isinstance(event, MessageDoneEvent):
+                    usage = event.usage
+                yield event
+
+            span.set_output(accelerated_text)
+            if usage:
+                MP_ATTRIBUTE_COST = {
+                    SA.LLM_TOKEN_COUNT_PROMPT: usage.input_tokens,
+                    SA.LLM_TOKEN_COUNT_COMPLETION: usage.output_tokens,
+                    SA.LLM_TOKEN_COUNT_TOTAL: usage.total_tokens,
+                }
+                for key, value in MP_ATTRIBUTE_COST.items():
+                    span.set_attribute(key, value)

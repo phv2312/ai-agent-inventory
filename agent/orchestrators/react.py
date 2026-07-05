@@ -20,9 +20,11 @@ from agent.models.streams import (
     TextDeltaEvent,
 )
 from agent.tools.acts.registry import ToolActsRegistry, ToolParser
+from agent.tracer import llm_span, tracer_provider
 
 logger = structlog.get_logger(__name__)
 console = Console()
+tracer = tracer_provider.get_tracer(__name__)
 
 
 @dataclass
@@ -42,7 +44,11 @@ class ReAct:
     async def stream(self) -> AsyncGenerator[StreamEvent, None]:
         for turn_idx in range(self.max_turns):
             turn = AgentTurnState()
-            async for chunk in self.handle_llm_stream(self.request, turn):
+            async for chunk in self.handle_llm_stream(
+                self.request,
+                turn,
+                turn_idx=turn_idx,
+            ):
                 yield chunk
             has_tool_calls = len(turn.function_calls) > 0
 
@@ -70,24 +76,37 @@ class ReAct:
         self,
         request: ChatRequest,
         state: AgentTurnState,
+        *,
+        turn_idx: int = 0,
     ) -> AsyncGenerator[StreamEvent, None]:
-        async for event in self.streamer.stream(request):
-            if isinstance(event, ErrorEvent):
-                msg = f"Stream error {event.code}: {event.message}"
-                raise TypeError(msg)
-            if isinstance(event, TextDeltaEvent):
-                state.assistant_text += event.content
-            elif isinstance(event, FunctionCallStartEvent) and isinstance(
-                event.item, CustomFunctionCall
-            ):
-                state.mp_id_tool_name[event.id] = event.item.name
-            elif isinstance(event, MessageDoneEvent):
-                state.function_calls = [
-                    tool_call
-                    for tool_call in event.tools
-                    if isinstance(tool_call, CustomFunctionCall)
-                ]
-            yield event
+        with llm_span(
+            tracer,
+            f"ReAct.llm.turn_{turn_idx}",
+            request,
+        ) as span:
+            async for event in self.streamer.stream(request):
+                if isinstance(event, ErrorEvent):
+                    msg = f"Stream error {event.code}: {event.message}"
+                    raise TypeError(msg)
+                if isinstance(event, TextDeltaEvent):
+                    state.assistant_text += event.content
+                elif isinstance(event, FunctionCallStartEvent) and isinstance(
+                    event.item, CustomFunctionCall
+                ):
+                    state.mp_id_tool_name[event.id] = event.item.name
+                elif isinstance(event, MessageDoneEvent):
+                    state.function_calls = [
+                        tool_call
+                        for tool_call in event.tools
+                        if isinstance(tool_call, CustomFunctionCall)
+                    ]
+                yield event
+            span.set_output(
+                {
+                    "text": state.assistant_text,
+                    "tool_calls": [call.name for call in state.function_calls],
+                },
+            )
 
     async def handle_tool_calls(
         self,

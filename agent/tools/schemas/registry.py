@@ -123,10 +123,12 @@ class ToolDescriptionArgs:
 
     VISUALIZE_README_TOOL: str = (
         "Returns required context for inline visualize fences (CSS variables, "
-        "colors, typography, layout rules, examples). Call before "
-        "your first ```visualize:<module> fence in the answer. Do NOT "
-        "mention or narrate this call to the user — it is an internal "
-        "setup step."
+        "colors, typography, layout rules, examples). Call exactly once "
+        "before your first ```visualize:<module> fence in the answer, "
+        "with the intended module(s) in `modules` (for example, "
+        "`['chart']` for charts or `['diagram']` for flowcharts). Do "
+        "NOT mention or narrate this call to the user; it is an "
+        "internal setup step."
     )
 
 

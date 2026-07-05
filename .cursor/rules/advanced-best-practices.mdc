@@ -12,7 +12,5 @@ globs: **/*.py
 - Use the Receive an Object, Return an Object (RORO) pattern.
 - For intermediate dictionary variable name, use `mp_<keytype>_<valuetype>`.
 - Prioritize OOP over functional programming.
-- Prefer following the practices in current source code, if it is already the best practice.
-- datatime.datetime.now should always have the `tz` argument. Defaults to UTC if not specified (DTZ005).
 - (FBT001) Boolean-typed must be keyword argument in function definition.
 - For `StrEnum`, prefer upper-case member names over lower-case.

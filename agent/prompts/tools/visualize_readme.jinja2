@@ -1,13 +1,23 @@
 # Imagine — Visual Creation Suite
 
-## Modules
-Call read_me again with the modules parameter to load detailed guidance:
+## Requested module guidance
+
+This response already includes the detailed guidance for the requested
+module(s). Use it directly before writing the first inline
+`visualize:<module>` fence.
+
+{{ vis_templates }}
+
+---
+
+## Available modules
+Choose the closest module when calling `visualize_read_me`:
 - `diagram` — SVG flowcharts, structural diagrams, illustrative diagrams
 - `mockup` — UI mockups, forms, cards, dashboards
 - `interactive` — interactive explainers with controls
 - `chart` — charts and data analysis (includes Chart.js)
 - `art` — illustration and generative art
-Pick the closest fit. The module includes all relevant design guidance.
+Pass all modules that fit in the same tool call.
 
 ## KN runtime (preferred for charts & standard diagrams)
 
@@ -151,5 +161,3 @@ Pick the closest use case below and adapt. When nothing fits cleanly:
 - Default to card layout if the content is a bounded object
 - All core design system rules still apply
 - Use `sendPrompt()` for any action that benefits from Claude thinking
-
-{{ vis_templates }}

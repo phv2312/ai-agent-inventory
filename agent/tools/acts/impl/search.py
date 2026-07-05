@@ -10,8 +10,10 @@ from agent.storages.config import AnchorFields
 from agent.storages.vectordb.milvus import Milvus
 from agent.tools.acts.models import BaseToolCall, IToolAct, ToolActResult
 from agent.tools.schemas.registry import SearchParameters, ToolNames
+from agent.tracer import tool_span, tracer_provider
 
 console = Console()
+tracer = tracer_provider.get_tracer(__name__)
 
 
 class SearchToolCall(BaseToolCall[SearchParameters]):
@@ -32,59 +34,62 @@ class SearchAct(IToolAct[SearchToolCall]):
         self.top_k = top_k
 
     async def act(self, tool_call: SearchToolCall) -> ToolActResult:
-        yield f"Internal Search: {tool_call.params.query}\n\n"
+        with tool_span(tracer, "SearchAct.act", tool_call) as span:
+            yield f"Internal Search: {tool_call.params.query}\n\n"
 
-        embeddings = await self.embedding_model.embed(
-            [tool_call.params.query],
-        )
-        if len(embeddings) == 0:
-            raise ValueError("Query embedding is empty")
+            embeddings = await self.embedding_model.embed(
+                [tool_call.params.query],
+            )
+            if len(embeddings) == 0:
+                raise ValueError("Query embedding is empty")
 
-        filtered_dict: dict[str, Sequence[str | int]] | None = None
-        if self.file_ids:
-            filtered_dict = {AnchorFields.FILE_ID: list(self.file_ids)}
-        if tool_call.params.doc_names:
-            filtered_dict = {
-                **(filtered_dict or {}),
-                AnchorFields.FILE_NAME: list(tool_call.params.doc_names),
-            }
+            filtered_dict: dict[str, Sequence[str | int]] | None = None
+            if self.file_ids:
+                filtered_dict = {AnchorFields.FILE_ID: list(self.file_ids)}
+            if tool_call.params.doc_names:
+                filtered_dict = {
+                    **(filtered_dict or {}),
+                    AnchorFields.FILE_NAME: list(tool_call.params.doc_names),
+                }
 
-        scored_chunks = await self.milvus.search(
-            query=embeddings[0],
-            top_k=self.top_k,
-            filtered_dict=filtered_dict,
-        )
-
-        response_parts: list[str] = []
-        for scored_chunk in scored_chunks.root:
-            metadata = scored_chunk.chunk.metadata.model_dump()
-            response_parts.append(
-                (
-                    f"Document: {metadata.get('filename', '')}\n\n"
-                    f"Chunk-ID: {scored_chunk.chunk.chunk_id}\n\n"
-                    f"Source: Internal\n\n"
-                    f"{scored_chunk.text}"
-                ),
+            scored_chunks = await self.milvus.search(
+                query=embeddings[0],
+                top_k=self.top_k,
+                filtered_dict=filtered_dict,
             )
 
-        response_text = (
-            "\n\n---\n\n".join(response_parts)
-            or "No data. Try another query or escalate to web search."
-        )
+            response_parts: list[str] = []
+            for scored_chunk in scored_chunks.root:
+                metadata = scored_chunk.chunk.metadata.model_dump()
+                response_parts.append(
+                    (
+                        f"Document: {metadata.get('filename', '')}\n\n"
+                        f"Chunk-ID: {scored_chunk.chunk.chunk_id}\n\n"
+                        f"Source: Internal\n\n"
+                        f"{scored_chunk.text}"
+                    ),
+                )
 
-        yield FunctionCallOutput(
-            call_id=tool_call.id,
-            output=response_text,
-        )
+            response_text = (
+                "\n\n---\n\n".join(response_parts)
+                or "No data. Try another query or escalate to web search."
+            )
 
-        console.print(
-            Panel(
-                (
-                    f"Search Result (granularity: "
-                    f"{tool_call.params.granularity})\n"
-                    f"{response_text[:1000]}..."
+            output = FunctionCallOutput(
+                call_id=tool_call.id,
+                output=response_text,
+            )
+            span.set_output(output)
+            yield output
+
+            console.print(
+                Panel(
+                    (
+                        f"Search Result (granularity: "
+                        f"{tool_call.params.granularity})\n"
+                        f"{response_text[:1000]}..."
+                    ),
+                    title="🔍 Search Result",
+                    style="bold magenta",
                 ),
-                title="🔍 Search Result",
-                style="bold magenta",
-            ),
-        )
+            )

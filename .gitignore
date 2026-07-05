@@ -19,6 +19,12 @@ frontend/dist/
 .env.*
 *.db
 .agent-api-data/
+evaluation/traces/*
+!evaluation/traces/.gitkeep
+evaluation/artifacts/*
+!evaluation/artifacts/.gitkeep
+evaluation/runs/*
+!evaluation/runs/.gitkeep
 
 # IDE and OS
 .DS_Store

@@ -14,6 +14,10 @@ class OpenAISettings(BaseSettings):
 class OpenAIChatSettings(OpenAISettings):
     OPENAI_CHAT_DEPLOYMENT_NAME: str
 
+    # Per million token cost
+    OPENAI_CHAT_INPUT_TOKEN_COST: float = 1.75
+    OPENAI_CHAT_OUTPUT_TOKEN_COST: float = 14.0
+
 
 class OpenAIEmbeddingSettings(OpenAISettings):
     OPENAI_EMBEDDING_DEPLOYMENT_NAME: str
@@ -36,12 +40,19 @@ class AnthropicSettings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
 
 
+class PhoenixSettings(BaseSettings):
+    PHOENIX_PROJECT_NAME: str = "agent-demo"
+    PHOENIX_ENDPOINT: str = "http://localhost:6006/v1/traces"
+    PHOENIX_PROTOCOL: str = "http/protobuf"
+
+
 class Env(
     OpenAIChatSettings,
     OpenAIEmbeddingSettings,
     MilvusSettings,
     TavilyWebSearchSettings,
     AnthropicSettings,
+    PhoenixSettings,
     BaseSettings,
 ):
     model_config = SettingsConfigDict(case_sensitive=False)
