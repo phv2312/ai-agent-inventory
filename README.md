@@ -142,7 +142,7 @@ run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
 
 | Status | Feature |
 |:------:|:--------|
-| ✅ | Agentic-RAG implementation, demo with kotaemon-inspired theme |
+| ✅ | Agentic-RAG implementation and React chat UI |
 | ✅ | Built-in tools: internal search, web search, reflection |
 | ✅ | Inline visual generation integrated into the chat demo |
 | 🔲 | Agent skills — sandbox vs. local machine execution (decision pending) |
