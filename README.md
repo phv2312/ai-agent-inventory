@@ -131,8 +131,10 @@ cd frontend && npm run test:widget-runtime && npm run build
 ### 6. Evaluation benchmark
 
 The `evaluation/` package contains the 100-query agent benchmark, Phoenix trace
-capture, metric evaluation, Excel export, and visualization artifact extraction.
-See [evaluation/README.md](evaluation/README.md) for commands.
+capture, metric evaluation, and visualization artifact extraction.
+
+See [evaluation/README.md](evaluation/README.md) for commands. Latest run:
+run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
 
 ---
 
