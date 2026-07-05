@@ -3,9 +3,9 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
-from agent.models.streams import FunctionCallOutput
+from agent.models.streams import FunctionCallOutput, StreamEvent
 
-type ToolActResult = AsyncGenerator[str | FunctionCallOutput, None]
+type ToolActResult = AsyncGenerator[str | FunctionCallOutput | StreamEvent, None]
 
 
 class BaseToolCall[ParamsT: BaseModel](BaseModel):

@@ -53,24 +53,34 @@ class FunctionType(StrEnum):
     WEB_SEARCH = auto()
 
 
+class StreamScope(BaseModel):
+    agent_name: str
+    depth: int = Field(ge=1)
+    parent_call_id: str | None = None
+
+
 class TextDeltaEvent(BaseModel):
     type: Literal[StreamEventType.TEXT_DELTA] = StreamEventType.TEXT_DELTA
     content: str
+    scope: StreamScope | None = None
 
 
 class TextDoneEvent(BaseModel):
     type: Literal[StreamEventType.TEXT_DONE] = StreamEventType.TEXT_DONE
     content: str | None = None
+    scope: StreamScope | None = None
 
 
 class ThinkingDeltaEvent(BaseModel):
     type: Literal[StreamEventType.THINKING_DELTA] = StreamEventType.THINKING_DELTA
     content: str
+    scope: StreamScope | None = None
 
 
 class ThinkingDoneEvent(BaseModel):
     type: Literal[StreamEventType.THINKING_DONE] = StreamEventType.THINKING_DONE
     content: str
+    scope: StreamScope | None = None
 
 
 class CustomFunctionCall(BaseModel):
@@ -146,6 +156,7 @@ class FunctionCallStartEvent(BaseModel):
 
     id: str
     item: FunctionCall
+    scope: StreamScope | None = None
 
 
 class FunctionCallTextDeltaEvent(BaseModel):
@@ -154,6 +165,7 @@ class FunctionCallTextDeltaEvent(BaseModel):
     )
     id: str
     delta: str
+    scope: StreamScope | None = None
 
 
 class FunctionCallArgsDeltaEvent(BaseModel):
@@ -163,6 +175,7 @@ class FunctionCallArgsDeltaEvent(BaseModel):
 
     id: str
     delta: str
+    scope: StreamScope | None = None
 
 
 class FunctionCallArgsDoneEvent(BaseModel):
@@ -172,6 +185,7 @@ class FunctionCallArgsDoneEvent(BaseModel):
 
     id: str
     item: FunctionCall
+    scope: StreamScope | None = None
 
 
 class FunctionCallOutput(BaseModel):
@@ -182,6 +196,7 @@ class FunctionCallOutput(BaseModel):
 class MessageStartEvent(BaseModel):
     type: Literal[StreamEventType.MESSAGE_START] = StreamEventType.MESSAGE_START
     message_id: str
+    scope: StreamScope | None = None
 
 
 class ResponseUsage(BaseModel):
@@ -196,12 +211,14 @@ class MessageDoneEvent(BaseModel):
     stop_reason: str
     tools: list[FunctionCall]
     usage: ResponseUsage = Field(default_factory=ResponseUsage)
+    scope: StreamScope | None = None
 
 
 class ErrorEvent(BaseModel):
     type: Literal[StreamEventType.ERROR] = StreamEventType.ERROR
     code: str
     message: str
+    scope: StreamScope | None = None
 
 
 type StreamEvent = (
