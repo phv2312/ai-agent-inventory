@@ -1,11 +1,6 @@
-"""Wraps IAgent as IToolAct for parent agent tool loops.
-
-Cyclic agent-as-tool graphs are undefined in v1.
-"""
-
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
@@ -13,9 +8,11 @@ from agent.models.streams import (
     FunctionCallOutput,
     TextDeltaEvent,
 )
-from agent.orchestrators.interface import IAgent
 from agent.tools.acts.models import BaseToolCall, ToolActResult
 from agent.tools.schemas.registry import BaseToolParameters
+
+if TYPE_CHECKING:
+    from agent.orchestrators.react import ReActAgent
 
 
 class AgentToolParams(BaseToolParameters):
@@ -30,7 +27,7 @@ class AgentToolCall(BaseToolCall[AgentToolParams]):
 
 @dataclass
 class AgentAsToolAct:
-    agent: IAgent
+    agent: "ReActAgent"
     agent_name: str
 
     @classmethod
@@ -51,14 +48,8 @@ class AgentAsToolAct:
         )
 
     async def act(self, tool_call: BaseToolCall[Any]) -> ToolActResult:
-        from agent.orchestrators.react import ReActAgent
-
         if not isinstance(tool_call, AgentToolCall):
             msg = "Tool call must be an AgentToolCall"
-            raise TypeError(msg)
-
-        if not isinstance(self.agent, ReActAgent):
-            msg = "Agent-as-tool child must be a configured ReActAgent"
             raise TypeError(msg)
 
         child_request = self.agent.build_request(tool_call.params.query)

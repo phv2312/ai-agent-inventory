@@ -3,6 +3,7 @@ from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Any, Callable
 
+from agent.orchestrators import ReActAgent
 from agent.programs import BaseProgram, NameSuggestionProgram
 from agent.textsplitters import (
     ITextSplitter,
@@ -16,7 +17,6 @@ from agent.chats.impl.anthropic import AnthropicProvider
 from agent.chats.impl.openai import OpenAIProvider
 from agent.rag.chats.deps import ChatDeps
 from agent.rag.chats.strategies.agentic import AgenticChatStrategy
-from agent.orchestrators.interface import IAgent
 from agent.rag.chats.strategies.agentic.v1.core import AgenticSettings
 from agent.tools.resolver import ToolResolver
 from agent.embeddings import IEmbeddingModel, SmallOpenAIEmbeddingModel
@@ -247,7 +247,7 @@ class ToolResolverProvider:
         *,
         file_ids: list[str],
         top_k: int = 10,
-        agents: dict[str, IAgent] | None = None,
+        agents: dict[str, ReActAgent] | None = None,
     ) -> ToolResolver:
         return ToolResolver(
             milvus=self.vectordb_provider.get(VectorDBModel.MILVUS),
