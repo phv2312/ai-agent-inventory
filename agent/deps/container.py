@@ -8,10 +8,6 @@ from agent.textsplitters import (
     ITextSplitter,
     LangchainTextSplitter,
 )
-from agent.websearches import (
-    TavilyWebSearch,
-    IWebSearch,
-)
 from anthropic import AsyncAnthropic
 from openai import AsyncAzureOpenAI
 
@@ -36,7 +32,6 @@ from .models import (
     TextSplitterModel,
     ExtractorModel,
     VectorDBModel,
-    WebSearchModel,
     ChatModel,
 )
 
@@ -176,30 +171,6 @@ class VectorDBProvider(
         )
 
 
-class WebSearchProvider(
-    BaseProvider[
-        WebSearchModel,
-        IWebSearch,
-    ]
-):
-    def __init__(self, env: Env, text_splitter_provider: TextSplitterProvider) -> None:
-        self.env = env
-        self.text_splitter_provider = text_splitter_provider
-
-    @property
-    def mp_name_init(self) -> MPReturn[WebSearchModel, IWebSearch]:
-        return {
-            WebSearchModel.TAVILY: self.init_tavily_websearch,
-        }
-
-    @lru_cache(maxsize=1)
-    def init_tavily_websearch(self) -> TavilyWebSearch:
-        return TavilyWebSearch(
-            self.env.TAVILY_API_KEY,
-            splitter=self.text_splitter_provider.get(TextSplitterModel.LANGCHAIN),
-        )
-
-
 class ChatProvider(
     BaseProvider[ChatModel, IChatModel],
 ):
@@ -282,10 +253,6 @@ class Container:
     @cached_property
     def vectordbs(self) -> VectorDBProvider:
         return VectorDBProvider(self.env)
-
-    @cached_property
-    def websearches(self) -> WebSearchProvider:
-        return WebSearchProvider(self.env, self.text_splitters)
 
     @cached_property
     def text_splitters(self) -> TextSplitterProvider:

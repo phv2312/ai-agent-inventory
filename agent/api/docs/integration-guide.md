@@ -5,7 +5,7 @@ End-to-end flow for the Agent HTTP API v1.
 ## Prerequisites
 
 - Python 3.12+ with project dependencies installed
-- `.env` with OpenAI Azure, Milvus, and optional Tavily keys
+- `.env` with OpenAI Azure and Milvus keys
 - API running: `uvicorn agent.api.main:app --port 8080`
 
 ## Flow

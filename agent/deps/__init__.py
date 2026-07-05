@@ -4,7 +4,6 @@ from .models import (
     TextSplitterModel,
     ExtractorModel,
     VectorDBModel,
-    WebSearchModel,
     ChatModel,
 )
 
@@ -15,6 +14,5 @@ __all__ = [
     "TextSplitterModel",
     "ExtractorModel",
     "VectorDBModel",
-    "WebSearchModel",
     "ChatModel",
 ]

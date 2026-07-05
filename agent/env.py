@@ -28,10 +28,6 @@ class MilvusSettings(BaseSettings):
     MILVUS_DB_URI: str
 
 
-class TavilyWebSearchSettings(BaseSettings):
-    TAVILY_API_KEY: str
-
-
 class AnthropicSettings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False,
@@ -50,7 +46,6 @@ class Env(
     OpenAIChatSettings,
     OpenAIEmbeddingSettings,
     MilvusSettings,
-    TavilyWebSearchSettings,
     AnthropicSettings,
     PhoenixSettings,
     BaseSettings,

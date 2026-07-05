@@ -11,7 +11,6 @@ from agent.typedefs import ListModel
 
 class Source(StrEnum):
     DOCUMENT = auto()
-    WEBSEARCH = auto()
 
 
 class DocumentMetadata(BaseModel):
@@ -25,25 +24,10 @@ class DocumentMetadata(BaseModel):
     fileid: str
 
 
-class WebsearchMetdata(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    source: Literal[Source.WEBSEARCH] = Source.WEBSEARCH
-    url: str
-
-
-Metadata = Annotated[
-    DocumentMetadata | WebsearchMetdata,
-    Field(
-        discriminator="source",
-    ),
-]
-
-
 class Chunk(BaseModel):
     chunk_id: UUID = Field(default_factory=uuid4)
     text: str
-    metadata: Metadata
+    metadata: DocumentMetadata
 
 
 class ScoredChunk(BaseModel):
@@ -55,7 +39,7 @@ class ScoredChunk(BaseModel):
         return self.chunk.text
 
     @property
-    def metadata(self) -> Metadata:
+    def metadata(self) -> DocumentMetadata:
         return self.chunk.metadata
 
 

@@ -48,32 +48,17 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 ### 2. Environment variables
 
-Create a `.env` file at the repo root with your keys (see template below).
+Copy the template and fill in your keys:
+
+```bash
+cp .env.example .env
+```
+
 Settings are read from the **process environment**, so load the file before
 starting the API:
 
 ```bash
 set -a && source .env && set +a   # macOS / Linux
-python main_run_api.py
-```
-
-```dotenv
-# Azure OpenAI (required)
-OPENAI_API_KEY=
-OPENAI_AZURE_ENDPOINT=https://<resource>.openai.azure.com
-OPENAI_API_VERSION=2024-02-01
-OPENAI_CHAT_DEPLOYMENT_NAME=gpt-4.1
-OPENAI_EMBEDDING_DEPLOYMENT_NAME=text-embedding-3-small
-
-# Milvus Lite (required — local vector store)
-MILVUS_DB_URI=./milvus.db
-MILVUS_DB_COLLECTION_NAME=agent_inventory
-
-# Tavily web search (required for live web search tool)
-TAVILY_API_KEY=
-
-# Anthropic (optional — only if using Anthropic chat models)
-ANTHROPIC_API_KEY=
 ```
 
 Optional API settings (prefix `AGENT_API_`):
@@ -86,8 +71,7 @@ Optional API settings (prefix `AGENT_API_`):
 ### 3. Run the API
 
 ```bash
-python main_run_api.py
-# or: uvicorn agent.api.main:app --reload --port 8080
+uvicorn agent.api.main:app --reload --port 8080
 ```
 
 - API: http://localhost:8080
@@ -149,7 +133,6 @@ run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
 | rag | Agentic RAG chat strategies with tool-driven retrieval | - AgenticChatStrategy (ReAct + Responses API) |
 | programs | LLM programs that generate structured data using Pydantic models | - Base program framework |
 | prompts | Templates and configurations for LLM chat prompts | - Agentic prompts |
-| searches | Search functionality including vector and semantic search | - Tavily search<br>- DuckDuckGo search |
 | storages | Storage implementations including vector database integrations | - Local storage<br>- Milvus |
 | textsplitters | Text chunking and splitting utilities for large documents | - Langchain text splitter |
 

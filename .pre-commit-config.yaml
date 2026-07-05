@@ -17,7 +17,6 @@ repos:
         additional_dependencies:
           - pydantic
           - pymilvus
-          - tavily-python
           - openai
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.9
