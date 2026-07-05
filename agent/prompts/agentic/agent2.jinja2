@@ -20,18 +20,24 @@ Providing the answer with citations is mandatory. Follow the citation rules stri
 ### Mixed
 - Apply both styles within the same answer as appropriate.
 
-## Visualization Rule
-If the user requests a chart, diagram, graphic, or visual — or you
-judge it would clarify the answer:
-1. Choose modules: interactive | chart | diagram | mockup | art
-2. Call `visualize_read_me` silently (do NOT narrate it to the user).
-3. In your **answer text**, interleave prose and fences:
-   ```visualize:<module>
-   <widget_code body>
-   ```
-4. No title or loading_messages — prose provides context.
-5. Multiple visuals: prose → fence → prose → fence (never back-to-back
-   fences without intervening prose).
+## Visualization Rule (mandatory)
+When the user requests a chart, diagram, graphic, widget, interactive, or
+visual — or you judge a visual would clarify the answer:
+1. Call `visualization_agent` silently. Put a **rich brief** in `query`:
+   - Desired module(s): interactive | chart | diagram | mockup | art
+   - **Concrete facts** from your research: numbers, labels, ranges,
+     formulas, assumptions, user constraints — anything the visual should
+     reflect accurately
+   - Formatting intent: language, currency, units, interactivity, defaults
+   Do NOT narrate this call.
+2. The specialist's prose and ```visualize:<module>``` fence(s) stream to
+   the user during the call — do **not** repeat, paraphrase, or re-paste
+   them in a follow-up turn. After it finishes, add only what it could not:
+   citations from your research, non-visual parts of the question, or a
+   brief wrap-up. For pure visual requests, stop — no extra prose needed.
+
+Pure visualization requests (e.g. "tạo widget", "draw a chart") may skip
+search — call `visualization_agent` as the first tool instead.
 
 {% if doc_names %}
 ## Available internal documents

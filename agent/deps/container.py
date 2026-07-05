@@ -3,6 +3,7 @@ from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Any, Callable
 
+from agent.orchestrators import ReActAgent
 from agent.programs import BaseProgram, NameSuggestionProgram
 from agent.textsplitters import (
     ITextSplitter,
@@ -17,6 +18,7 @@ from agent.chats.impl.openai import OpenAIProvider
 from agent.rag.chats.deps import ChatDeps
 from agent.rag.chats.strategies.agentic import AgenticChatStrategy
 from agent.rag.chats.strategies.agentic.v1.core import AgenticSettings
+from agent.tools.resolver import ToolResolver
 from agent.embeddings import IEmbeddingModel, SmallOpenAIEmbeddingModel
 from agent.extractors import (
     IExtractor,
@@ -231,6 +233,33 @@ class AgenticStrategyProvider:
         )
 
 
+class ToolResolverProvider:
+    def __init__(
+        self,
+        vectordb_provider: VectorDBProvider,
+        embedding_provider: EmbeddingProvider,
+    ) -> None:
+        self.vectordb_provider = vectordb_provider
+        self.embedding_provider = embedding_provider
+
+    def get(
+        self,
+        *,
+        file_ids: list[str],
+        top_k: int = 10,
+        agents: dict[str, ReActAgent] | None = None,
+    ) -> ToolResolver:
+        return ToolResolver(
+            milvus=self.vectordb_provider.get(VectorDBModel.MILVUS),
+            embedding_model=self.embedding_provider.get(
+                EmbeddingModel.AZURE_OPENAI,
+            ),
+            file_ids=file_ids,
+            top_k=top_k,
+            mp_name_agent=agents or {},
+        )
+
+
 class Container:
     def __init__(
         self, env: Env | None = None, storage: FileStorage | None = None
@@ -261,6 +290,10 @@ class Container:
     @cached_property
     def chats(self) -> ChatProvider:
         return ChatProvider(self.env)
+
+    @cached_property
+    def tool_resolvers(self) -> ToolResolverProvider:
+        return ToolResolverProvider(self.vectordbs, self.embeddings)
 
     @cached_property
     def agentic(self) -> AgenticStrategyProvider:

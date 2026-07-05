@@ -1,3 +1,8 @@
-from .react import ReAct
+from agent.orchestrators.factory import AgentPairFactory
+from agent.orchestrators.react import ReAct, ReActAgent
 
-__all__ = ["ReAct"]
+__all__ = [
+    "AgentPairFactory",
+    "ReAct",
+    "ReActAgent",
+]

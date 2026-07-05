@@ -12,16 +12,14 @@ from agent.models.messages import AssistantMessage, UserMessage
 from agent.models.streams import (
     ChatRequest,
     MessageDoneEvent,
-    ResponseUsage,
     StreamEvent,
     TextDeltaEvent,
     ToolDefinition,
 )
-from agent.orchestrators import ReAct
+from agent.orchestrators.factory import AgentPairFactory
 from agent.prompts.core import PromptsFactory
 from agent.rag.chats.deps import ChatDeps
 from agent.storages.config import AnchorFields
-from agent.tools.acts.registry import ToolActsRegistry
 from agent.tools.schemas.registry import ToolSchemaRegistry
 from agent.tracer import chain_span, format_trace_id, new_request_id, tracer_provider
 
@@ -120,13 +118,6 @@ class AgenticChatStrategy:
                     "model_name is required for agentic streaming",
                 )
 
-            actor_registry = ToolActsRegistry(
-                milvus=self.deps.vectordb,
-                embedding_model=self.deps.embedding_model,
-                file_ids=file_ids,
-                top_k=resolved_top_k,
-            )
-
             doc_names = await self.utils.get_doc_names(file_ids)
             logger.info(
                 "Retrieved doc names for given file ids",
@@ -140,24 +131,40 @@ class AgenticChatStrategy:
 
             logger.info("Tool definitions", tool_defs=tool_defs)
 
+            instructions = self.template.render(
+                doc_names=";".join(doc_names),
+                memory_md_content=memory_md_content,
+            )
+
+            agent_factory = AgentPairFactory(
+                streamer=self.deps.stream_provider,
+                model=resolved_model,
+                temperature=self.settings.temperature,
+                max_turns=self.settings.max_turns,
+            )
+            visualization_agent = agent_factory.build_visualization_agent()
+            resolver = agent_factory.build_agentic_resolver(
+                milvus=self.deps.vectordb,
+                embedding_model=self.deps.embedding_model,
+                file_ids=file_ids,
+                top_k=resolved_top_k,
+                visualization_agent=visualization_agent,
+            )
+            agent = agent_factory.build_agentic_agent(
+                resolver=resolver,
+                tools=tool_defs,
+                instructions=instructions,
+            )
+
             chat_request = ChatRequest(
                 model=resolved_model,
                 messages=[*(history or []), UserMessage(content=query)],
                 tools=tool_defs,
                 temperature=self.settings.temperature,
-                instructions=self.template.render(
-                    doc_names=";".join(doc_names),
-                    memory_md_content=memory_md_content,
-                ),
+                instructions=instructions,
             )
 
-            usage: ResponseUsage | None = None
-            async for event in ReAct(
-                streamer=self.deps.stream_provider,
-                request=chat_request,
-                actor_registry=actor_registry,
-                max_turns=self.settings.max_turns,
-            ).stream():
+            async for event in agent.stream(chat_request):
                 if isinstance(event, TextDeltaEvent):
                     accelerated_text += event.content
                 elif isinstance(event, MessageDoneEvent):

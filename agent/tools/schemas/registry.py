@@ -16,6 +16,7 @@ class ToolNames(StrEnum):
     INLINE_CITATIONS_TOOL = "inline_citations_tool"
     WEB_SEARCH_TOOL = "web_search_tool"
     VISUALIZE_README_TOOL = "visualize_read_me"
+    VISUALIZATION_AGENT_TOOL = "visualization_agent"
 
 
 type VisualizeModule = Literal[
@@ -131,6 +132,16 @@ class ToolDescriptionArgs:
         "internal setup step."
     )
 
+    VISUALIZATION_AGENT_TOOL: str = (
+        "Delegate visualization to a specialized agent. Use when the user "
+        "requests a chart, diagram, graphic, or visual, or when a visual "
+        "would clarify the answer. Pass a rich brief in `query`: desired "
+        "module(s) (interactive/chart/diagram/mockup/art), concrete facts "
+        "from your research (numbers, labels, ranges, formulas, assumptions, "
+        "user constraints), and formatting intent. Do NOT narrate this "
+        "call to the user."
+    )
+
 
 class ToolSchemaRegistry:
     """Canonical tool schemas for streaming and OpenAI Responses API."""
@@ -159,11 +170,29 @@ class ToolSchemaRegistry:
             description=ToolDescriptionArgs.VISUALIZE_README_TOOL,
             input_schema=(VisualizeReadmeParameters.model_json_schema()),
         ),
+        ToolNames.VISUALIZATION_AGENT_TOOL: FunctionCallDefinition(
+            name=ToolNames.VISUALIZATION_AGENT_TOOL,
+            description=ToolDescriptionArgs.VISUALIZATION_AGENT_TOOL,
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "Rich visualization brief: module(s), concrete "
+                            "facts from research, and formatting intent"
+                        ),
+                    },
+                },
+                "required": ["query"],
+                "additionalProperties": False,
+            },
+        ),
     }
 
     _AGENTIC_STREAM_TOOL_ORDER: Final[tuple[ToolNames, ...]] = (
         ToolNames.WEB_SEARCH_TOOL,
-        ToolNames.VISUALIZE_README_TOOL,
+        ToolNames.VISUALIZATION_AGENT_TOOL,
     )
 
     @staticmethod
@@ -182,3 +211,9 @@ class ToolSchemaRegistry:
             ]
 
         return tools
+
+    @staticmethod
+    def visualization_tools() -> list[ToolDefinition]:
+        return [
+            ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.VISUALIZE_README_TOOL],
+        ]
