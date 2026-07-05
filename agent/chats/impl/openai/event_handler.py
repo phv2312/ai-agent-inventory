@@ -284,15 +284,19 @@ class CompletedEventHandler(BaseEventHandler[ResponseCompletedEvent]):
         if scratch.message_id is None:
             raise ValueError("Message ID is required")
 
+        usage = ResponseUsage()
+        if response.usage:
+            usage = ResponseUsage(
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+                total_tokens=response.usage.total_tokens,
+            )
+
         yield MessageDoneEvent(
             message_id=scratch.message_id,
             stop_reason=stop_reason,
             tools=list(scratch.mp_id_function_call.values()),
-            usage=ResponseUsage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
-                total_tokens=response.usage.total_tokens,
-            ),
+            usage=usage,
         )
 
 

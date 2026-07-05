@@ -32,8 +32,7 @@ def classify_visualizations(
                 query_id=query.id,
                 status=VisualizationStatus.NOT_RUNNABLE,
                 error_message=(
-                    "Unknown visualize module(s): "
-                    f"{', '.join(invalid_modules)}"
+                    f"Unknown visualize module(s): {', '.join(invalid_modules)}"
                 ),
             ),
         ]

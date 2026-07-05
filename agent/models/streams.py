@@ -185,9 +185,9 @@ class MessageStartEvent(BaseModel):
 
 
 class ResponseUsage(BaseModel):
-    input_tokens: int
-    output_tokens: int
-    total_tokens: int
+    input_tokens: int = Field(default=0)
+    output_tokens: int = Field(default=0)
+    total_tokens: int = Field(default=0)
 
 
 class MessageDoneEvent(BaseModel):
@@ -195,13 +195,7 @@ class MessageDoneEvent(BaseModel):
     message_id: str
     stop_reason: str
     tools: list[FunctionCall]
-    usage: ResponseUsage = Field(
-        default_factory=lambda: ResponseUsage(
-            input_tokens=0,
-            output_tokens=0,
-            total_tokens=0,
-        ),
-    )
+    usage: ResponseUsage = Field(default_factory=ResponseUsage)
 
 
 class ErrorEvent(BaseModel):

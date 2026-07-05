@@ -48,9 +48,7 @@ def wrap_visualization_html(widget_code: str) -> str:
     """Wrap widget fragment HTML in the same runtime shell as the frontend."""
     runtime_bundle = load_kn_runtime_bundle().strip()
     svg_styles = load_svg_widget_styles()
-    runtime_script = (
-        f"<script>{runtime_bundle}</script>" if runtime_bundle else ""
-    )
+    runtime_script = f"<script>{runtime_bundle}</script>" if runtime_bundle else ""
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n'

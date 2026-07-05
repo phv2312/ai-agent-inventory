@@ -175,8 +175,7 @@ def format_tool_calls_for_judge(tool_calls: list[ToolCall]) -> str:
     if not tool_calls:
         return "(no tool calls)"
     parts = [
-        f"{call.order}. {call.tool_name}\noutput:\n"
-        f"{call.output_preview or '(empty)'}"
+        f"{call.order}. {call.tool_name}\noutput:\n{call.output_preview or '(empty)'}"
         for call in tool_calls
     ]
     return "\n\n".join(parts)

@@ -117,7 +117,7 @@ async def chat(
             web_search_enabled=web_search_enabled,
             system_prompt=system_prompt,
             # keep track of user-message id for easier to trace the response
-            # request_id=user_message.id,
+            request_id=user_message.id,
         ):
             if await request.is_disconnected():
                 return

@@ -40,9 +40,7 @@ async def build_report(
 ) -> EvaluationReport:
     """Build a complete report from traces and metric outputs."""
     active_judge = judge or AzureToolCallJudge(Env())
-    mp_query_id_record = {
-        record.id: record for record in dataset.limit()
-    }
+    mp_query_id_record = {record.id: record for record in dataset.limit()}
     results: list[QueryResult] = []
     for trace in traces:
         record = mp_query_id_record[trace.query_id]
@@ -202,7 +200,8 @@ def _failed_query_ids(report: EvaluationReport) -> list[str]:
     for result in report.results:
         tool_failed = result.tool_judgment.label != ToolJudgmentLabel.CORRECT
         visual_failed = any(
-            visual.status in {
+            visual.status
+            in {
                 VisualizationStatus.NOT_RUNNABLE,
                 VisualizationStatus.MISSING_EXPECTED,
             }

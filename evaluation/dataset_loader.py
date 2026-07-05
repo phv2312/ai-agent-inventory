@@ -33,4 +33,3 @@ def load_dataset(path: Path) -> EvaluationDataset:
         raise DatasetValidationError("\n".join(errors))
 
     return EvaluationDataset(records=records)
-

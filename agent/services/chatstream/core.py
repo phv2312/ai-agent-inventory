@@ -60,6 +60,7 @@ class ChatStreamService:
         model_name: str,
         web_search_enabled: bool,
         system_prompt: str | None = None,
+        request_id: str | None = None,
     ) -> AsyncGenerator[ServerSentEvent, None]:
         state = ChatStreamState()
         assembler = ContentBlockAssembler()
@@ -83,6 +84,7 @@ class ChatStreamService:
                 model_name=model_name,
                 tools=tool_defs,
                 memory_md_content=system_prompt or "",
+                request_id=request_id,
             ):
                 if isinstance(event, TextDeltaEvent):
                     accelerated_chat_text += event.content
