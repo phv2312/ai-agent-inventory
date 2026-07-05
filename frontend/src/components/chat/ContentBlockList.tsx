@@ -7,6 +7,7 @@ import {
     CONTENT_BLOCK_TYPE,
     WIDGET_BLOCK_STATUS,
 } from '../../types/contentBlocks';
+import { normalizeCitationContent } from '../../utils/citationFormatting';
 import { InlineVisualizationFrame } from './inlineVisualization/InlineVisualizationFrame';
 
 interface MarkdownComponents {
@@ -18,12 +19,14 @@ interface Props {
     blocks: ContentBlock[];
     isMessageStreaming: boolean;
     markdownComponents: MarkdownComponents;
+    mappingEvidence?: Record<string, string> | null;
 }
 
 export function ContentBlockList({
     blocks,
     isMessageStreaming,
     markdownComponents,
+    mappingEvidence,
 }: Props) {
     const sorted = useMemo(
         () => [...blocks].sort((a, b) => a.order - b.order),
@@ -38,7 +41,10 @@ export function ContentBlockList({
         <div className="space-y-3">
             {sorted.map((block) => {
                 if (block.type === CONTENT_BLOCK_TYPE.TEXT) {
-                    const text = block.text ?? '';
+                    const text = normalizeCitationContent(
+                        block.text ?? '',
+                        mappingEvidence,
+                    );
                     if (!text.trim()) return null;
                     return (
                         <div

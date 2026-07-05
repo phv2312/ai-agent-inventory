@@ -244,6 +244,7 @@ export function MessageBubble({ message, isStreaming }: Props) {
                         blocks={message.contentBlocks}
                         isMessageStreaming={isMessageStreaming}
                         markdownComponents={components}
+                        mappingEvidence={message.mappingEvidence}
                     />
                 ) : message.content ? (
                     <div className="prose prose-invert prose-p:text-[15px] prose-p:leading-relaxed prose-chat max-w-none text-[var(--color-text)]">
