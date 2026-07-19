@@ -16,6 +16,9 @@ from .env import Env
 
 
 def create_tracer(env: Env) -> TracerProvider:
+    """Create a Phoenix-backed or no-export tracing provider."""
+    if not env.PHOENIX_TRACING_ENABLED:
+        return TracerProvider()
     return register(
         project_name=env.PHOENIX_PROJECT_NAME,
         endpoint=env.PHOENIX_ENDPOINT,

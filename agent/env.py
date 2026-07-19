@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,9 +39,10 @@ class AnthropicSettings(BaseSettings):
 
 
 class PhoenixSettings(BaseSettings):
+    PHOENIX_TRACING_ENABLED: bool = False
     PHOENIX_PROJECT_NAME: str = "agent-demo"
     PHOENIX_ENDPOINT: str = "http://localhost:6006/v1/traces"
-    PHOENIX_PROTOCOL: str = "http/protobuf"
+    PHOENIX_PROTOCOL: Literal["http/protobuf", "grpc"] = "http/protobuf"
 
 
 class Env(

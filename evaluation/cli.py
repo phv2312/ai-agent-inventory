@@ -7,6 +7,7 @@ from pathlib import Path
 from agent.env import Env
 
 from evaluation.dataset_loader import load_dataset
+from evaluation.exceptions import PhoenixTraceError
 from evaluation.exports import export_visualization_artifacts
 from evaluation.models import (
     AgentTrace,
@@ -25,6 +26,17 @@ from evaluation.runners.trace_capture import capture_dataset_traces
 PHOENIX_INDEX_SLEEP_SECONDS = 2.0
 
 
+def ensure_phoenix_tracing_enabled(env: Env) -> None:
+    """Require Phoenix tracing before running trace-backed evaluation."""
+    if env.PHOENIX_TRACING_ENABLED:
+        return
+    msg = (
+        "Phoenix-backed evaluation requires tracing. "
+        "Set PHOENIX_TRACING_ENABLED=true and start Phoenix before running it."
+    )
+    raise PhoenixTraceError(msg)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the benchmark CLI parser."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -40,6 +52,8 @@ async def run_benchmark(
     paths: RunPaths,
 ) -> None:
     """Capture traces, evaluate them, and write deliverables."""
+    env = Env()
+    ensure_phoenix_tracing_enabled(env)
     dataset = load_dataset(dataset_path)
     manifest = await capture_dataset_traces(
         dataset,
@@ -48,7 +62,6 @@ async def run_benchmark(
         run_id=paths.run_id,
     )
     await asyncio.sleep(PHOENIX_INDEX_SLEEP_SECONDS)
-    env = Env()
     loader = PhoenixTraceLoader.from_env(env)
     traces = build_agent_traces(
         dataset,

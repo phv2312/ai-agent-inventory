@@ -61,6 +61,11 @@ starting the API:
 set -a && source .env && set +a   # macOS / Linux
 ```
 
+Phoenix tracing is off by default, so local API runs do not need a Phoenix
+server. Set `PHOENIX_TRACING_ENABLED=true` to export traces; `scripts/run.sh`
+then starts Phoenix alongside the API and frontend. Trace-backed evaluation
+also requires this setting.
+
 Optional API settings (prefix `AGENT_API_`):
 
 | Variable | Default | Description |
