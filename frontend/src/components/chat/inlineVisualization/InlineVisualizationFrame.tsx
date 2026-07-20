@@ -28,6 +28,7 @@ const CHAT_EMBED_BG = '#1a1a1a';
 const WIDGET_DARK_OVERRIDES = `
 html { color-scheme: dark; }
 html, body { background-color: ${CHAT_EMBED_BG} !important; overflow-x: auto; overflow-y: visible; }
+#kn-root { display: flex; justify-content: center; width: 100%; }
 `;
 
 function runtimeScriptTag(): string {

@@ -7,9 +7,8 @@ export type ContentBlockType =
     (typeof CONTENT_BLOCK_TYPE)[keyof typeof CONTENT_BLOCK_TYPE];
 
 export const WIDGET_BLOCK_STATUS = {
-    STREAMING: 'streaming',
+    IN_PROGRESS: 'in_progress',
     COMPLETE: 'complete',
-    INCOMPLETE: 'incomplete',
     ERROR: 'error',
 } as const;
 
@@ -17,41 +16,47 @@ export type WidgetBlockStatus =
     (typeof WIDGET_BLOCK_STATUS)[keyof typeof WIDGET_BLOCK_STATUS];
 
 export interface ContentBlock {
-    id: string;
     type: ContentBlockType;
     order: number;
     status: WidgetBlockStatus;
-    module?: string | null;
     text?: string | null;
+    textChunks?: string[];
     title?: string | null;
     loadingMessages?: string[];
     widgetCode?: string | null;
+    widgetCodeChunks?: string[];
     errorMessage?: string | null;
 }
 
 export interface BlockOpenPayload {
-    block_id: string;
+    event_type: 'block-open';
     type: ContentBlockType;
     order: number;
-    module?: string | null;
-    title?: string | null;
-    loading_messages?: string[];
+    status: WidgetBlockStatus;
+    content?: string | null;
+    error_message?: string | null;
 }
 
 export interface BlockDeltaPayload {
-    block_id: string;
-    content: string;
+    event_type: 'block-delta';
+    order: number;
+    type: ContentBlockType;
+    status: WidgetBlockStatus;
+    content?: string | null;
+    error_message?: string | null;
 }
 
 export interface BlockClosePayload {
-    block_id: string;
+    event_type: 'block-close';
+    order: number;
+    type: ContentBlockType;
     status: WidgetBlockStatus;
+    content?: string | null;
     error_message?: string | null;
 }
 
 /** Raw block from REST (camelCase after apiFetch) or SSE (snake_case). */
 export function apiBlockToContentBlock(raw: {
-    id: string;
     type: string;
     order: number;
     status: string;
@@ -66,11 +71,9 @@ export function apiBlockToContentBlock(raw: {
     errorMessage?: string | null;
 }): ContentBlock {
     return {
-        id: raw.id,
         type: raw.type as ContentBlockType,
         order: raw.order,
         status: raw.status as WidgetBlockStatus,
-        module: raw.module,
         text: raw.text,
         title: raw.title,
         loadingMessages: raw.loadingMessages ?? raw.loading_messages ?? [],
