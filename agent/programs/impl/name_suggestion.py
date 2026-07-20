@@ -10,14 +10,10 @@ from agent.programs.base import BaseProgram
 
 
 class NameSuggestion(BaseModel):
-    """Structured output for a suggested conversation name."""
-
     name: str = Field(description="Suggested conversation name")
 
 
 class NameSuggestionProgram(BaseProgram[NameSuggestion]):
-    """Suggest a conversation name from a user message."""
-
     ModelOutCls = NameSuggestion
     DEFAULT_MAX_WORDS: Final[int] = 10
     DEFAULT_NAME: Final[str] = "Conversation"

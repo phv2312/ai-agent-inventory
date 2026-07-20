@@ -98,27 +98,21 @@ class InlineCitationsParameters(BaseToolParameters):
 
 class ToolDescriptionArgs:
     THINK_TOOL: str = """
-        Reflect on the search results and decide whether to continue
-        searching or escalate to web search.
-        Called after each search call.
-        Called before escalating to web search.
+        Act as the scratchpad for your thoughts.
+        Use it for extra searches when the gathered context is not sufficent for the final answer.
+        Ideally call before performing extra internal search or escalating to web-search.
     """
 
     SEARCH_TOOL: str = """
-        IMPORTANT: always call `search_tool` as the 1st tool, before
-        calling any other tools, to update internal knowledge base.
-        Retrieve information from the internal knowledge base.
-        For every query, you MUST perform at least one internal search
-        call before escalating to web search.
+        Prefer calling internal search first if there're document names provided
+        to update your knowledge-base.
+        **Do not use your built-in knowledge**. Use either internal knowledge-base
+        or web source only.
     """
 
     INLINE_CITATIONS_TOOL: str = """
-        IMPORTANT: call this tool RIGHT BEFORE THE FINAL ANSWER.
-        `search_tool` must be called before this tool.
-        Internal KB only. Submit chunk_id values from `search_tool`
-        together with snippets copied character-for-character from that
-        chunk's body. The host validates each snippet against the chunk
-        text and highlights matching spans in the evidence panel.
+        Precisely cite snippets from internal chunks, which support for your final answer.
+        It's mandatory that internal search tool should be call first.
     """
 
     VISUALIZE_README_TOOL: str = (

@@ -25,6 +25,10 @@ class OpenAIEmbeddingSettings(OpenAISettings):
     OPENAI_EMBEDDING_DEPLOYMENT_NAME: str
 
 
+class ContextGenerationSettings(BaseSettings):
+    USE_IMAGE_CONTEXT: bool = False
+
+
 class MilvusSettings(BaseSettings):
     MILVUS_DB_COLLECTION_NAME: str
     MILVUS_DB_URI: str
@@ -46,6 +50,7 @@ class PhoenixSettings(BaseSettings):
 
 
 class Env(
+    ContextGenerationSettings,
     OpenAIChatSettings,
     OpenAIEmbeddingSettings,
     MilvusSettings,

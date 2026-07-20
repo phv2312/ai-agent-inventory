@@ -46,7 +46,7 @@ class ReAct:
         for turn_idx in range(self.max_turns):
             turn = AgentTurnState()
 
-            # Handle text delta and some pre-built tools
+            # Handle text delta and pre-built tools
             async for chunk in self.handle_llm_stream(
                 self.request,
                 turn,
