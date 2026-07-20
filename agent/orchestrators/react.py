@@ -14,10 +14,11 @@ from agent.models.streams import (
     ErrorEvent,
     FunctionCallOutput,
     FunctionCallStartEvent,
-    FunctionCallTextDeltaEvent,
+    FunctionCallProgressEvent,
     MessageDoneEvent,
     StreamEvent,
     TextDeltaEvent,
+    WebSearchFunctionCall,
 )
 from agent.tools.acts.registry import ToolActsRegistry, ToolParser
 from agent.tracer import llm_span, tracer_provider
@@ -44,6 +45,8 @@ class ReAct:
     async def stream(self) -> AsyncGenerator[StreamEvent, None]:
         for turn_idx in range(self.max_turns):
             turn = AgentTurnState()
+
+            # Handle text delta and some pre-built tools
             async for chunk in self.handle_llm_stream(
                 self.request,
                 turn,
@@ -67,6 +70,7 @@ class ReAct:
                 function_calls=len(turn.function_calls),
             )
 
+            # Handle custom function call & its progress
             async for event in self.handle_tool_calls(
                 function_calls=turn.function_calls,
             ):
@@ -90,10 +94,13 @@ class ReAct:
                     raise TypeError(msg)
                 if isinstance(event, TextDeltaEvent):
                     state.assistant_text += event.content
-                elif isinstance(event, FunctionCallStartEvent) and isinstance(
-                    event.item, CustomFunctionCall
-                ):
-                    state.mp_id_tool_name[event.id] = event.item.name
+                elif isinstance(event, FunctionCallStartEvent):
+                    if isinstance(event.item, CustomFunctionCall):
+                        state.mp_id_tool_name[event.id] = event.item.name
+                    elif isinstance(event.item, WebSearchFunctionCall):
+                        yield FunctionCallProgressEvent(
+                            id=event.id, delta=event.item.as_str
+                        )
                 elif isinstance(event, MessageDoneEvent):
                     state.function_calls = [
                         tool_call
@@ -151,7 +158,7 @@ class ReAct:
 
             async for output_event in actor.act(parsed_function_call):
                 if isinstance(output_event, str):
-                    yield FunctionCallTextDeltaEvent(
+                    yield FunctionCallProgressEvent(
                         id=function_call.call_id,
                         delta=output_event,
                     )

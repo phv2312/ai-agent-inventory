@@ -19,7 +19,6 @@ class NameSuggestionData(BaseModel):
 
 
 class BlockOpenData(BaseModel):
-    block_id: str
     type: str
     order: int
     module: str | None = None
@@ -28,12 +27,12 @@ class BlockOpenData(BaseModel):
 
 
 class BlockDeltaData(BaseModel):
-    block_id: str
+    order: int
     content: str
 
 
 class BlockCloseData(BaseModel):
-    block_id: str
+    order: int
     status: str
     error_message: str | None = None
 

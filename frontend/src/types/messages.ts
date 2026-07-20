@@ -66,14 +66,17 @@ function flattenTextBlocks(blocks: ContentBlock[]): string {
 
 export function apiMessageToChatMessage(msg: ApiMessage): ChatMessage {
     const contentBlocks = (msg.contentBlocks ?? []).map(apiBlockToContentBlock);
+    const hasRenderableBlocks = contentBlocks.some(
+        (block) => Boolean(block.text?.trim()) || Boolean(block.widgetCode?.trim()),
+    );
     const content =
-        contentBlocks.length > 0 ? flattenTextBlocks(contentBlocks) : msg.content;
+        hasRenderableBlocks ? flattenTextBlocks(contentBlocks) : msg.content;
     return {
         id: msg.id,
         content,
         role: msg.role,
         feedback: USER_FEEDBACK.NEUTRAL,
         mappingEvidence: msg.mappingEvidence,
-        contentBlocks,
+        contentBlocks: hasRenderableBlocks ? contentBlocks : [],
     };
 }

@@ -6,10 +6,7 @@ import type {
     BlockOpenPayload,
     ContentBlock,
 } from '../types/contentBlocks';
-import {
-    CONTENT_BLOCK_TYPE,
-    WIDGET_BLOCK_STATUS,
-} from '../types/contentBlocks';
+import { CONTENT_BLOCK_TYPE } from '../types/contentBlocks';
 import {
     apiMessageToChatMessage,
     MESSAGE_ROLE,
@@ -54,14 +51,6 @@ const initialState: ChatState = {
     streamingUsesBlocks: false,
 };
 
-function flattenTextBlocks(blocks: ContentBlock[]): string {
-    return blocks
-        .filter((b) => b.type === CONTENT_BLOCK_TYPE.TEXT)
-        .sort((a, b) => a.order - b.order)
-        .map((b) => b.text ?? '')
-        .join('');
-}
-
 function getStreamingMessage(state: ChatState): ChatMessage | null {
     if (state.streamingMessageIdx === null) return null;
     return state.messages[state.streamingMessageIdx] ?? null;
@@ -103,15 +92,15 @@ export const chatSlice = createSlice({
             state.streamingUsesBlocks = true;
             const payload = action.payload;
             const block: ContentBlock = {
-                id: payload.block_id,
                 type: payload.type,
                 order: payload.order,
-                status: WIDGET_BLOCK_STATUS.STREAMING,
+                status: payload.status,
                 text: payload.type === CONTENT_BLOCK_TYPE.TEXT ? '' : null,
-                title: payload.title ?? null,
-                loadingMessages: payload.loading_messages ?? [],
+                textChunks: payload.type === CONTENT_BLOCK_TYPE.TEXT ? [] : undefined,
                 widgetCode:
                     payload.type === CONTENT_BLOCK_TYPE.VISUAL_WIDGET ? '' : null,
+                widgetCodeChunks:
+                    payload.type === CONTENT_BLOCK_TYPE.VISUAL_WIDGET ? [] : undefined,
             };
             msg.contentBlocks = [...msg.contentBlocks, block].sort(
                 (a, b) => a.order - b.order,
@@ -120,39 +109,34 @@ export const chatSlice = createSlice({
         appendContentBlockDelta(state, action: PayloadAction<BlockDeltaPayload>) {
             const msg = getStreamingMessage(state);
             if (!msg) return;
-            const { block_id: blockId, content } = action.payload;
-            msg.contentBlocks = msg.contentBlocks.map((block) => {
-                if (block.id !== blockId) return block;
-                if (block.type === CONTENT_BLOCK_TYPE.TEXT) {
-                    return { ...block, text: (block.text ?? '') + content };
-                }
-                return {
-                    ...block,
-                    widgetCode: (block.widgetCode ?? '') + content,
-                };
-            });
-            msg.content = flattenTextBlocks(msg.contentBlocks);
+            const { order, content } = action.payload;
+            const block = msg.contentBlocks.find((item) => item.order === order);
+            if (!block) return;
+            if (block.type === CONTENT_BLOCK_TYPE.TEXT) {
+                block.textChunks ??= [];
+                block.textChunks.push(content ?? '');
+                return;
+            }
+            block.widgetCodeChunks ??= [];
+            block.widgetCodeChunks.push(content ?? '');
         },
         closeContentBlock(state, action: PayloadAction<BlockClosePayload>) {
             const msg = getStreamingMessage(state);
             if (!msg) return;
             const {
-                block_id: blockId,
+                order,
                 status,
-                title,
                 error_message: errorMessage,
             } = action.payload;
             msg.contentBlocks = msg.contentBlocks.map((block) =>
-                block.id === blockId
+                block.order === order
                     ? {
                           ...block,
                           status,
-                          title: title ?? block.title,
                           errorMessage: errorMessage ?? null,
                       }
                     : block,
             );
-            msg.content = flattenTextBlocks(msg.contentBlocks);
         },
         appendAssistantReasoningContent(state, action: PayloadAction<string>) {
             if (state.streamingMessageIdx === null) return;

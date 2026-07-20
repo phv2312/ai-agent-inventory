@@ -89,9 +89,10 @@ export function ReasoningTimeline({
                 const isLast = i === steps.length - 1;
                 const isDone = step.kind === 'done';
                 const isActive = isStreaming && isLast && !isDone;
+                const stepKey = `${step.kind}-${step.text}-${i}`;
 
                 return (
-                    <li key={i} className="flex items-stretch gap-3">
+                    <li key={stepKey} className="flex items-stretch gap-3">
                         <div className="flex w-6 shrink-0 flex-col items-center">
                             <div
                                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border shadow-sm ${

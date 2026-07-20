@@ -1,5 +1,3 @@
-"""Tool acts for inline visualization (readme)."""
-
 from typing import Literal
 
 from jinja2 import Template
@@ -16,13 +14,11 @@ tracer = tracer_provider.get_tracer(__name__)
 
 
 class VisualizeReadmeToolCall(BaseToolCall[VisualizeReadmeParameters]):
-    """Parsed call for the visualize_read_me tool."""
-
     name: Literal[ToolNames.VISUALIZE_README_TOOL] = ToolNames.VISUALIZE_README_TOOL
 
 
 class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
-    """Return design guidelines to the LLM for the requested modules.
+    """Return design guidelines to the LLM for the requested modules.s
 
     The LLM calls this silently before inline visualize fences to load
     CSS variable rules, color palette, and layout examples.
@@ -55,7 +51,10 @@ class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
             )
             output = FunctionCallOutput(
                 call_id=tool_call.id,
-                output=response_str,
+                output=(
+                    f"Here is the guide-line\n{response_str}\n"
+                    "Do not repeat the same tool call with same module."
+                ),
             )
             span.set_output(output)
             yield output

@@ -42,13 +42,13 @@ export function ContentBlockList({
             {sorted.map((block) => {
                 if (block.type === CONTENT_BLOCK_TYPE.TEXT) {
                     const text = normalizeCitationContent(
-                        block.text ?? '',
+                        block.textChunks?.join('') ?? block.text ?? '',
                         mappingEvidence,
                     );
                     if (!text.trim()) return null;
                     return (
                         <div
-                            key={block.id}
+                            key={block.order}
                             className="prose prose-invert prose-p:text-[15px] prose-p:leading-relaxed prose-chat max-w-none text-[var(--color-text)]"
                         >
                             <ReactMarkdown
@@ -64,17 +64,19 @@ export function ContentBlockList({
                 if (block.type === CONTENT_BLOCK_TYPE.VISUAL_WIDGET) {
                     const streamActive =
                         isMessageStreaming &&
-                        block.status === WIDGET_BLOCK_STATUS.STREAMING;
-                    const incomplete =
-                        block.status === WIDGET_BLOCK_STATUS.INCOMPLETE;
+                        block.status === WIDGET_BLOCK_STATUS.IN_PROGRESS;
                     return (
                         <InlineVisualizationFrame
-                            key={block.id}
-                            widgetCode={block.widgetCode ?? ''}
-                            title={block.title ?? undefined}
-                            loadingMessages={block.loadingMessages}
+                            key={block.order}
+                            widgetCode={
+                                block.widgetCodeChunks?.join('') ??
+                                block.widgetCode ??
+                                ''
+                            }
+                            title={undefined}
+                            loadingMessages={[]}
                             streamActive={streamActive}
-                            incomplete={incomplete}
+                            incomplete={false}
                         />
                     );
                 }

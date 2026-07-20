@@ -37,7 +37,7 @@ class StreamEventType(StrEnum):
     FUNCTION_CALL_START = auto()
     FUNCTION_CALL_ARGS_DELTA = auto()
     FUNCTION_CALL_ARGS_DONE = auto()
-    FUNCTION_CALL_TEXT_DELTA = auto()
+    FUNCTION_CALL_PROGRESS = auto()
 
     THINKING_DELTA = auto()
     THINKING_DONE = auto()
@@ -129,8 +129,8 @@ class WebSearchFunctionCall(BaseModel):
     @property
     def as_str(self) -> str:
         if self.action is None:
-            return f"Search: {self.status.icon}"
-        return f"{self.action.as_str} {self.status.icon}"
+            return f"{self.status.icon} Searching from the internet"
+        return f"{self.status.icon} {self.action.as_str}"
 
 
 type FunctionCall = Annotated[
@@ -148,9 +148,9 @@ class FunctionCallStartEvent(BaseModel):
     item: FunctionCall
 
 
-class FunctionCallTextDeltaEvent(BaseModel):
-    type: Literal[StreamEventType.FUNCTION_CALL_TEXT_DELTA] = (
-        StreamEventType.FUNCTION_CALL_TEXT_DELTA
+class FunctionCallProgressEvent(BaseModel):
+    type: Literal[StreamEventType.FUNCTION_CALL_PROGRESS] = (
+        StreamEventType.FUNCTION_CALL_PROGRESS
     )
     id: str
     delta: str
@@ -208,7 +208,7 @@ type StreamEvent = (
     TextDeltaEvent
     | TextDoneEvent
     | FunctionCallStartEvent
-    | FunctionCallTextDeltaEvent
+    | FunctionCallProgressEvent
     | FunctionCallArgsDeltaEvent
     | FunctionCallArgsDoneEvent
     | ThinkingDeltaEvent
