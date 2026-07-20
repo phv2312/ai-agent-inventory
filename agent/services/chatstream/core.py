@@ -53,30 +53,27 @@ class ChatStreamService:
         self.agent_container = agent_container
         self.last_state = ChatStreamState()
 
-    def update_inline_citation_state(self, state: ChatStreamState, event: StreamEvent) -> None:
-        call_done = isinstance(event, FunctionCallArgsDoneEvent)
-        if call_done is False:
-            return
-        is_custom = isinstance(event.item, CustomFunctionCall)
-        if is_custom is False:
-            return
-
-        if event.item.name == ToolNames.INLINE_CITATIONS_TOOL:
-            try:
-                params = InlineCitationsParameters.model_validate_json(
-                    event.item.arguments
-                )
-                mp_updates = mp_chunk_id_snippets_from_items(
-                    params.citations
-                )
-                for chunk_id, snippets in mp_updates.items():
-                    state.mp_chunk_snippets.setdefault(chunk_id, []).extend(
-                        snippets
+    def update_inline_citation_state(
+        self, state: ChatStreamState, event: StreamEvent
+    ) -> None:
+        if isinstance(event, FunctionCallArgsDoneEvent) and isinstance(
+            event.item, CustomFunctionCall
+        ):
+            func_call = event.item
+            if func_call.name == ToolNames.INLINE_CITATIONS_TOOL:
+                try:
+                    params = InlineCitationsParameters.model_validate_json(
+                        func_call.arguments
                     )
-                    if chunk_id not in state.validated_chunk_ids:
-                        state.validated_chunk_ids.append(chunk_id)
-            except Exception:
-                pass
+                    mp_updates = mp_chunk_id_snippets_from_items(params.citations)
+                    for chunk_id, snippets in mp_updates.items():
+                        state.mp_chunk_snippets.setdefault(chunk_id, []).extend(
+                            snippets
+                        )
+                        if chunk_id not in state.validated_chunk_ids:
+                            state.validated_chunk_ids.append(chunk_id)
+                except Exception:
+                    pass
 
     async def stream(
         self,

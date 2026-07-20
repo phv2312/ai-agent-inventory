@@ -52,7 +52,9 @@ class ContentBlockTransformer:
             case FenceEventType.OPEN_WIDGET:
                 return self.open_widget(event.module or "")
             case FenceEventType.WIDGET_DELTA:
-                return self.append_content(ContentBlockType.VISUAL_WIDGET, event.content)
+                return self.append_content(
+                    ContentBlockType.VISUAL_WIDGET, event.content
+                )
             case FenceEventType.CLOSE_WIDGET:
                 return self.close_current()
             case FenceEventType.WIDGET_ERROR:
@@ -70,10 +72,7 @@ class ContentBlockTransformer:
             FenceEventType.CLOSE_WIDGET: ContentBlockEventType.CLOSE,
         }
 
-        self.current_event = mp_event_status.get(
-            event_type,
-            self.current_event
-        )
+        self.current_event = mp_event_status.get(event_type, self.current_event)
 
         return None
 
@@ -160,6 +159,7 @@ class ContentBlockTransformer:
         self.current_order = None
         self.current_type = None
         return [block]
+
 
 @dataclass
 class ContentBlockAssembler:

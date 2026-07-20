@@ -136,8 +136,7 @@ async def chat(
             state.validated_chunk_ids,
         )
         content_blocks = [
-            block.model_dump(mode="json")
-            for block in state.content_blocks
+            block.model_dump(mode="json") for block in state.content_blocks
         ] or None
 
         async with container.session_factory() as session:

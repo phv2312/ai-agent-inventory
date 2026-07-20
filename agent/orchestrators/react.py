@@ -99,8 +99,7 @@ class ReAct:
                         state.mp_id_tool_name[event.id] = event.item.name
                     elif isinstance(event.item, WebSearchFunctionCall):
                         yield FunctionCallProgressEvent(
-                            id=event.id,
-                            delta=event.item.as_str
+                            id=event.id, delta=event.item.as_str
                         )
                 elif isinstance(event, MessageDoneEvent):
                     state.function_calls = [
