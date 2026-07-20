@@ -12,7 +12,7 @@ from agent.models.streams import (
 
 class ToolNames(StrEnum):
     THINK_TOOL = "think_tool"
-    SEARCH_TOOL = "search_tool"
+    SEARCH_TOOL = "internal_search_tool"
     INLINE_CITATIONS_TOOL = "inline_citations_tool"
     WEB_SEARCH_TOOL = "web_search_tool"
     VISUALIZE_README_TOOL = "visualize_read_me"

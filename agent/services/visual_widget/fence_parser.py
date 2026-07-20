@@ -10,12 +10,10 @@ VALID_MODULES: frozenset[str] = frozenset(
     {"chart", "diagram", "mockup", "interactive", "art"},
 )
 
-_OPENER_RE = re.compile(
-    r"^```visualize:(chart|diagram|mockup|interactive|art)\s*$",
-)
-_INVALID_OPENER_RE = re.compile(r"^```visualize:(\S+)\s*$")
-_CLOSER_RE = re.compile(r"^```\s*$")
-_OPENER_MARKER = "```visualize:"
+
+class RegexPatterns:
+    WIDGET_OPENING = re.compile(r"^(.*?)```visualize:(\S+)(.*?)$")
+    WIDGET_CLOSING = re.compile(r"^(.*?)```(.*)$")
 
 
 class ParserState(StrEnum):
@@ -41,97 +39,112 @@ class FenceEvent:
 
 @dataclass
 class VisualizeFenceParser:
-    """Line-oriented state machine for visualize fence syntax."""
-
     state: ParserState = ParserState.PROSE
-    _partial_line: str = field(default="", repr=False)
+    scratchpad: str = field(default="")
+    split_char: str = "\n"
+
+    def is_prose_hold_prefix(self, line: str) -> bool:
+        leading = len(line) - len(line.lstrip())
+        rest = line[leading:]
+        if rest.startswith("```"):
+            return True
+        return rest in ("`", "``")
+
+    def is_closer_prefix(self, line: str) -> bool:
+        return line.strip() in ("`", "``", "```")
 
     def feed(self, fragment: str) -> list[FenceEvent]:
-        """Consume a text delta; return ordered fence events."""
         if not fragment:
             return []
+
+        self.scratchpad += fragment
         events: list[FenceEvent] = []
-        self._partial_line += fragment
-        while "\n" in self._partial_line:
-            line, self._partial_line = self._partial_line.split("\n", 1)
-            events.extend(self._process_line(line))
-        if self.state == ParserState.PROSE and self._partial_line:
-            if not _is_prose_hold_prefix(self._partial_line):
-                events.append(
-                    FenceEvent(FenceEventType.PROSE_DELTA, self._partial_line),
-                )
-                self._partial_line = ""
-        elif self.state == ParserState.WIDGET and self._partial_line:
-            if _is_closer_prefix(self._partial_line):
-                pass
-            else:
-                events.append(
-                    FenceEvent(FenceEventType.WIDGET_DELTA, self._partial_line),
-                )
-                self._partial_line = ""
+        while self.split_char in self.scratchpad:
+            processing, self.scratchpad = self.scratchpad.split(self.split_char, 1)
+            events.extend(self.handle_scratchpad(processing + self.split_char))
+
+        if not self.scratchpad:
+            return events
+
+        match self.state:
+            case ParserState.PROSE:
+                if self.is_prose_hold_prefix(self.scratchpad):
+                    return events
+            case ParserState.WIDGET:
+                if self.is_closer_prefix(self.scratchpad):
+                    return events
+
+        events.extend(self.handle_scratchpad(self.scratchpad))
+        self.scratchpad = ""
         return events
 
     def flush_partial_prose(self) -> list[FenceEvent]:
-        """Release buffered partial line as prose (stream abort)."""
-        if not self._partial_line:
+        if not self.scratchpad:
             return []
-        if self.state == ParserState.WIDGET and _CLOSER_RE.match(
-            self._partial_line.strip(),
-        ):
-            self._partial_line = ""
-            self.state = ParserState.PROSE
-            return [FenceEvent(FenceEventType.CLOSE_WIDGET)]
-        event_type = (
-            FenceEventType.WIDGET_DELTA
-            if self.state == ParserState.WIDGET
-            else FenceEventType.PROSE_DELTA
-        )
-        content = self._partial_line
-        self._partial_line = ""
-        return [FenceEvent(event_type, content)]
+        events = self.handle_scratchpad(self.scratchpad)
+        self.scratchpad = ""
+        return events
 
-    def _process_line(self, line: str) -> list[FenceEvent]:
-        if self.state == ParserState.PROSE:
-            return self._process_prose_line(line)
-        return self._process_widget_line(line)
+    def finalize(self) -> list[FenceEvent]:
+        return self.flush_partial_prose()
 
-    def _process_prose_line(self, line: str) -> list[FenceEvent]:
-        stripped = line.lstrip()
-        match = _OPENER_RE.match(stripped)
-        if match:
-            self.state = ParserState.WIDGET
-            return [FenceEvent(FenceEventType.OPEN_WIDGET, module=match.group(1))]
-        invalid = _INVALID_OPENER_RE.match(stripped)
-        if invalid and invalid.group(1) not in VALID_MODULES:
-            return [
-                FenceEvent(
-                    FenceEventType.WIDGET_ERROR,
-                    module=invalid.group(1),
-                    error_message=(f"Unknown visualize module: {invalid.group(1)}"),
-                ),
-            ]
-        text = line + "\n"
-        if not text:
-            return []
-        return [FenceEvent(FenceEventType.PROSE_DELTA, text)]
+    def handle_scratchpad(self, text_line: str) -> list[FenceEvent]:
+        def _handle_prose(line: str) -> list[FenceEvent]:
+            # Transformation rules:
+            # - prose can be transformed into widget if it starts with ```visualize:<module>
+            # - prose can be transformed into widget error if it starts with ```visualize:<invalid_module>
+            # - otherwise, prose is just prose
 
-    def _process_widget_line(self, line: str) -> list[FenceEvent]:
-        if _CLOSER_RE.match(line.strip()):
-            self.state = ParserState.PROSE
-            return [FenceEvent(FenceEventType.CLOSE_WIDGET)]
-        return [FenceEvent(FenceEventType.WIDGET_DELTA, line + "\n")]
+            stripped = line.strip()
+            match = RegexPatterns.WIDGET_OPENING.search(stripped)
 
+            events: list[FenceEvent] = []
+            if match:
+                before, module, after = match.groups()
+                if before:
+                    events.append(FenceEvent(FenceEventType.PROSE_DELTA, before))
 
-def _is_prose_hold_prefix(line: str) -> bool:
-    """True when a partial line may still become a fence opener."""
-    leading = len(line) - len(line.lstrip())
-    rest = line[leading:]
-    if rest.startswith("```"):
-        return True
-    return rest in ("`", "``")
+                if module in VALID_MODULES:
+                    self.state = ParserState.WIDGET
+                    events.append(FenceEvent(FenceEventType.OPEN_WIDGET, module=module))
+                    if after:
+                        events.append(FenceEvent(FenceEventType.WIDGET_DELTA, after))
+                else:
+                    events.append(
+                        FenceEvent(
+                            FenceEventType.WIDGET_ERROR,
+                            module=module,
+                            error_message=f"Unknown visualize module: {module}",
+                        ),
+                    )
+            else:
+                events.append(FenceEvent(FenceEventType.PROSE_DELTA, line))
 
+            return events
 
-def _is_closer_prefix(line: str) -> bool:
-    """True when a partial line may still become a closing fence."""
-    stripped = line.strip()
-    return stripped in ("`", "``", "```")
+        def _handle_widget(line: str) -> list[FenceEvent]:
+            # Transformation rules:
+            # - widget can be transformed into prose if it starts with ```
+            # - otherwise, widget is just widget
+
+            stripped = line.strip()
+            match = RegexPatterns.WIDGET_CLOSING.search(stripped)
+            events: list[FenceEvent] = []
+            if match:
+                self.state = ParserState.PROSE
+                before, after = match.groups()
+                if before:
+                    events.append(FenceEvent(FenceEventType.WIDGET_DELTA, before))
+                events.append(FenceEvent(FenceEventType.CLOSE_WIDGET))
+                if after:
+                    events.append(FenceEvent(FenceEventType.PROSE_DELTA, after))
+            else:
+                events.append(FenceEvent(FenceEventType.WIDGET_DELTA, line))
+
+            return events
+
+        match self.state:
+            case ParserState.PROSE:
+                return _handle_prose(text_line)
+            case ParserState.WIDGET:
+                return _handle_widget(text_line)

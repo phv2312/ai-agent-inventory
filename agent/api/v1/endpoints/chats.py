@@ -13,7 +13,6 @@ from agent.api.settings import ApiSettings
 from agent.db.models import MessageRole
 from agent.models.messages import AssistantMessage, UserMessage
 from agent.services.chatstream.core import ChatStreamService
-from agent.services.messages.normalize import blocks_to_api_dicts
 from agent.services.chatstream.models import (
     NameSuggestionData,
     is_untitled_conversation,
@@ -136,9 +135,10 @@ async def chat(
             content,
             state.validated_chunk_ids,
         )
-        content_blocks = (
-            blocks_to_api_dicts(state.content_blocks) if state.content_blocks else None
-        )
+        content_blocks = [
+            block.model_dump(mode="json")
+            for block in state.content_blocks
+        ] or None
 
         async with container.session_factory() as session:
             repos = container.repos(session)
