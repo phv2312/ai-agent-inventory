@@ -35,6 +35,14 @@ export const referenceSlice = createSlice({
         addReference(state, action: PayloadAction<Reference>) {
             state.references.unshift(action.payload);
         },
+        removeReference(state, action: PayloadAction<ReferenceId>) {
+            state.references = state.references.filter(
+                (reference) => reference.id !== action.payload,
+            );
+            if (state.selectedReferenceId === action.payload) {
+                state.selectedReferenceId = null;
+            }
+        },
         selectReference(state, action: PayloadAction<ReferenceId | null>) {
             state.selectedReferenceId = action.payload;
         },
@@ -46,6 +54,7 @@ export const referenceSlice = createSlice({
     },
 });
 
-export const { setReferences, addReference, selectReference } = referenceSlice.actions;
+export const { setReferences, addReference, removeReference, selectReference } =
+    referenceSlice.actions;
 
 export default referenceSlice.reducer;

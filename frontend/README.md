@@ -34,6 +34,8 @@ npm run build
 ## Features (v1)
 
 - **Documents**: create collections, upload PDFs, manual refresh indexing status
+- **Chunk browser**: completed documents expose **View chunks** ordered by
+  descending source page
 - **Chat**: SSE streaming with thought process (expanded by default)
 - **Citations**: side-panel inspector via `GET /chunks/`
 - **Scope**: collection selection per conversation (localStorage), `@doc_name` mentions

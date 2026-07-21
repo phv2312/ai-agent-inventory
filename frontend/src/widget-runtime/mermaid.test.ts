@@ -142,6 +142,34 @@ describe('renderMermaid', () => {
         expect(render.mock.calls[0][1]).toContain('A --> B --> C');
     });
 
+    it('expands a rendered diagram to the available widget width', async () => {
+        const render = vi
+            .fn()
+            .mockResolvedValue({ svg: '<svg width="240" height="80"></svg>' });
+        (
+            window as Window & {
+                mermaid?: {
+                    initialize: () => void;
+                    render: typeof render;
+                };
+            }
+        ).mermaid = {
+            initialize: vi.fn(),
+            render,
+        };
+
+        renderMermaid('flowchart LR\n  A --> B');
+        await vi.advanceTimersByTimeAsync(150);
+
+        const svg = document.querySelector('.kn-mermaid-wrap svg');
+        expect(svg).toBeInstanceOf(SVGSVGElement);
+        if (!(svg instanceof SVGSVGElement)) {
+            throw new Error('Expected Mermaid to render an SVG element');
+        }
+        expect(svg.style.width).toBe('100%');
+        expect(svg.style.height).toBe('auto');
+    });
+
     it('shows CDN load failure message', async () => {
         const originalQuery = document.querySelector.bind(document);
         vi.spyOn(document, 'querySelector').mockImplementation(

@@ -2,7 +2,6 @@ import { showError } from './errors';
 import { buildMermaidThemeVariables } from './mermaid-theme';
 import { resolveMount } from './mount';
 import {
-    MAX_MERMAID_NODES_PER_WIDGET,
     MAX_MERMAID_SOURCE_CHARS,
     MERMAID_RENDER_DEBOUNCE_MS,
     type MermaidOptions,
@@ -116,7 +115,7 @@ export function countMermaidNodes(source: string): number | null {
             }
 
             const nodeDef = trimmedLine.match(
-                /^([A-Za-z][\w-]*)\s*(?:\[\[|\[\(|\[\{|>>|\[\>|\(\(|\(|{{|\[|>|\{)/,
+                /^([A-Za-z][\w-]*)\s*(?:\[\[|\[\(|\[\{|>>|\[>|\(\(|\(|{{|\[|>|\{)/,
             );
             if (nodeDef && !skip.has(nodeDef[1].toLowerCase())) {
                 ids.add(nodeDef[1]);
@@ -225,6 +224,11 @@ async function renderMermaidNow(
     try {
         const { svg } = await mermaid.render(renderId, source);
         wrap.innerHTML = svg;
+        const renderedSvg = wrap.querySelector('svg');
+        if (renderedSvg instanceof SVGSVGElement) {
+            renderedSvg.style.width = '100%';
+            renderedSvg.style.height = 'auto';
+        }
     } catch (e: unknown) {
         const msg =
             e instanceof Error ? e.message : 'Mermaid render failed';

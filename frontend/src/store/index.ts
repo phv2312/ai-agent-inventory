@@ -5,6 +5,7 @@ import CollectionReducer from './collection.slice';
 import ReferenceReducer from './reference.slice';
 import ConversationReducer from './conversation.slice';
 import ChatCollectionManageReducer from './chat.collection.slice';
+import DocumentChunksReducer from './documentChunks.slice';
 
 export const store = configureStore({
     reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
         collection: CollectionReducer,
         inspector: InspectorReducer,
         reference: ReferenceReducer,
+        documentChunks: DocumentChunksReducer,
     },
 });
 
