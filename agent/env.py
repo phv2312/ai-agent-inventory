@@ -26,7 +26,7 @@ class OpenAIEmbeddingSettings(OpenAISettings):
 
 
 class ContextGenerationSettings(BaseSettings):
-    USE_IMAGE_CONTEXT: bool = True
+    USE_IMAGE_CONTEXT: bool = False
     IMAGE_DETAIL: Literal["low", "auto", "high"] = "auto"
 
 
