@@ -1,5 +1,6 @@
 import { Header } from './Header';
 import { Table } from './Table';
+import { DocumentChunksModal } from './DocumentChunksModal';
 
 export function Reference() {
     return (
@@ -8,6 +9,7 @@ export function Reference() {
             <div className="flex-1 overflow-y-auto p-8">
                 <Table />
             </div>
+            <DocumentChunksModal />
         </div>
     );
 }

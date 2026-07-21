@@ -83,7 +83,8 @@ class OpenAIProvider(IChatModel):
             elif isinstance(message, FunctionCallOutput):
                 input_messages.append(
                     {
-                        **message.model_dump(),
+                        "call_id": message.call_id,
+                        "output": [item.model_dump() for item in message.output],
                         "type": "function_call_output",
                     },
                 )

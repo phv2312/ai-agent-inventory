@@ -17,6 +17,7 @@ from agent.models.streams import (
     FunctionCallProgressEvent,
     MessageDoneEvent,
     StreamEvent,
+    TextItemOutput,
     TextDeltaEvent,
     WebSearchFunctionCall,
 )
@@ -99,7 +100,7 @@ class ReAct:
                         state.mp_id_tool_name[event.id] = event.item.name
                     elif isinstance(event.item, WebSearchFunctionCall):
                         yield FunctionCallProgressEvent(
-                            id=event.id, delta=event.item.as_str
+                            id=event.id, delta=f"{event.item.as_str}\n\n"
                         )
                 elif isinstance(event, MessageDoneEvent):
                     state.function_calls = [
@@ -142,16 +143,20 @@ class ReAct:
                 self.request.messages.append(
                     FunctionCallOutput(
                         call_id=function_call.call_id,
-                        output=json.dumps(
-                            {
-                                "status": "error",
-                                "message": (
-                                    f"Tool '{function_call.name}' is not "
-                                    "available or could not be parsed."
+                        output=[
+                            TextItemOutput(
+                                text=json.dumps(
+                                    {
+                                        "status": "error",
+                                        "message": (
+                                            f"Tool '{function_call.name}' is not "
+                                            "available or could not be parsed."
+                                        ),
+                                    },
+                                    ensure_ascii=False,
                                 ),
-                            },
-                            ensure_ascii=False,
-                        ),
+                            ),
+                        ],
                     ),
                 )
                 continue

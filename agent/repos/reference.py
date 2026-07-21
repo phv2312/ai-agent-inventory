@@ -1,4 +1,4 @@
-from sqlalchemy import and_, select
+from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.db.models import IndexStatus, ReferenceORM
@@ -112,6 +112,13 @@ class SQLReferenceRepository:
         row.file_path = file_path
         await self.session.flush()
         return _to_record(row)
+
+    async def delete(self, reference_id: str) -> bool:
+        """Delete a reference record by its identifier."""
+        result = await self.session.execute(
+            delete(ReferenceORM).where(ReferenceORM.id == reference_id),
+        )
+        return result.rowcount > 0
 
 
 def _to_record(row: ReferenceORM) -> ReferenceRecord:

@@ -24,11 +24,21 @@ class ReferenceResponse(BaseModel):
     updated_at: datetime
 
 
-class ReferenceChunkItem(BaseModel):
+class ReferenceChunkPreview(BaseModel):
     id: str
-    text: str
-    metadata: dict[str, object]
+    ordinal: int
+    page_number: int | None
+    preview: str
 
 
 class ReferenceChunksResponse(BaseModel):
-    items: list[ReferenceChunkItem]
+    total: int
+    items: list[ReferenceChunkPreview]
+
+
+class ReferenceChunkDetail(BaseModel):
+    id: str
+    document_id: str
+    document_name: str
+    page_number: int | None
+    text: str

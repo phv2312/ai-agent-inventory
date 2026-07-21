@@ -1,13 +1,11 @@
 import { useState, useCallback } from "react";
 import { FileDropzone } from "./FileDropzone";
-import { MetadataForm } from "./MetadataForm";
-import type { DocumentMetadata } from "../../types/metadata";
 
 
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onUpload: (files: File[], metadata?: DocumentMetadata | null) => Promise<void>;
+    onUpload: (files: File[]) => Promise<void>;
 
     uploadProgress: Record<string, number>; // filename -> progress percentage
 }
@@ -114,7 +112,6 @@ export function UploadFilesModal({
     const [ selectedFiles, setSelectedFiles ] = useState<File[]>([]);
     const [ isLoading, setLoading ] = useState(false);
     const [ error, setError ] = useState<string | null>(null);
-    const [ metadata, setMetadata ] = useState<DocumentMetadata | null>(null);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         setSelectedFiles(prev => [...prev, ...acceptedFiles]);
@@ -129,11 +126,10 @@ export function UploadFilesModal({
         try {
             setLoading(true);
 
-            await onUpload(selectedFiles, metadata);
+            await onUpload(selectedFiles);
 
             // Reset form
             setSelectedFiles([]);
-            setMetadata(null);
             onClose();
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to upload files";
@@ -146,7 +142,6 @@ export function UploadFilesModal({
     const handleClose = () => {
         if (!isLoading) {
             setSelectedFiles([]);
-            setMetadata(null);
             onClose();
         }
     };
@@ -187,15 +182,6 @@ export function UploadFilesModal({
                         onRemoveFile={removeFile}
                         isLoading={isLoading}
                     />
-
-                    {/* Metadata Form */}
-                    <div className="mt-4">
-                        <MetadataForm
-                            onMetadataChange={setMetadata}
-                            disabled={isLoading}
-                            fileNames={selectedFiles.map(f => f.name)}
-                        />
-                    </div>
                 </div>
 
                 {/* Actions */}
