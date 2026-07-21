@@ -97,23 +97,26 @@ class InlineCitationsParameters(BaseToolParameters):
 
 
 class ToolDescriptionArgs:
-    THINK_TOOL: str = """
-        Act as the scratchpad for your thoughts.
-        Use it for extra searches when the gathered context is not sufficent for the final answer.
-        Ideally call before performing extra internal search or escalating to web-search.
-    """
+    THINK_TOOL: str = (
+        "Acts as a private scratchpad for concise reasoning. Use before "
+        "additional internal searches or escalation to web search when the "
+        "available context is insufficient. Do NOT include lists or prose "
+        "intended for the user; keep `reflection` direct and under 100 words."
+    )
 
-    SEARCH_TOOL: str = """
-        Prefer calling internal search first if there're document names provided
-        to update your knowledge-base.
-        **Do not use your built-in knowledge**. Use either internal knowledge-base
-        or web source only.
-    """
+    SEARCH_TOOL: str = (
+        "Searches the internal knowledge base for document-grounded context. "
+        "Call before web search when relevant document names are available, "
+        "and use its returned Chunk-IDs for internal citations. Do NOT rely "
+        "on built-in knowledge when internal or web sources are required."
+    )
 
-    INLINE_CITATIONS_TOOL: str = """
-        Precisely cite snippets from internal chunks, which support for your final answer.
-        It's mandatory that internal search tool should be call first.
-    """
+    INLINE_CITATIONS_TOOL: str = (
+        "Validates exact snippets from internal search results for use in the "
+        "final answer. Call only after `internal_search_tool`, with the "
+        "returned Chunk-IDs and character-for-character snippets that support "
+        "each cited claim."
+    )
 
     VISUALIZE_README_TOOL: str = (
         "Returns required context for inline visualize fences (CSS variables, "

@@ -2,7 +2,7 @@ from typing import Literal
 
 from jinja2 import Template
 
-from agent.models.streams import FunctionCallOutput
+from agent.models.streams import FunctionCallOutput, TextItemOutput
 from agent.tools.acts.models import BaseToolCall, IToolAct, ToolActResult
 from agent.tools.schemas.registry import (
     ToolNames,
@@ -51,10 +51,14 @@ class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
             )
             output = FunctionCallOutput(
                 call_id=tool_call.id,
-                output=(
-                    f"Here is the guide-line\n{response_str}\n"
-                    "Do not repeat the same tool call with same module."
-                ),
+                output=[
+                    TextItemOutput(
+                        text=(
+                            f"Here is the guide-line\n{response_str}\n"
+                            "**Do not repeat** the same tool call with same argument: module twice."
+                        ),
+                    ),
+                ],
             )
             span.set_output(output)
             yield output

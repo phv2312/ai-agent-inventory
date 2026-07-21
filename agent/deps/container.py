@@ -236,7 +236,7 @@ class Container:
         self, env: Env | None = None, storage: FileStorage | None = None
     ) -> None:
         self.env = env or Env()
-        self.storage = storage or FileStorage(imagedir=Path("images"))
+        self.storage = storage or FileStorage(imagedir=Path(".agent-api-data/images"))
 
     @cached_property
     def embeddings(self) -> EmbeddingProvider:

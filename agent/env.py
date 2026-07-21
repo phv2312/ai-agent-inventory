@@ -26,7 +26,8 @@ class OpenAIEmbeddingSettings(OpenAISettings):
 
 
 class ContextGenerationSettings(BaseSettings):
-    USE_IMAGE_CONTEXT: bool = False
+    USE_IMAGE_CONTEXT: bool = True
+    IMAGE_DETAIL: Literal["low", "auto", "high"] = "auto"
 
 
 class MilvusSettings(BaseSettings):

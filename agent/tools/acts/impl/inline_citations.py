@@ -1,7 +1,7 @@
 import json
 from typing import Literal
 
-from agent.models.streams import FunctionCallOutput
+from agent.models.streams import FunctionCallOutput, TextItemOutput
 from agent.services.citations.matcher import find_quote_span
 from agent.storages.config import AnchorFields
 from agent.storages.vectordb.milvus import Milvus
@@ -85,7 +85,11 @@ class InlineCitationsAct(IToolAct[InlineCitationsToolCall]):
             }
             output = FunctionCallOutput(
                 call_id=tool_call.id,
-                output=json.dumps(payload, ensure_ascii=False),
+                output=[
+                    TextItemOutput(
+                        text=json.dumps(payload, ensure_ascii=False),
+                    ),
+                ],
             )
             span.set_output(output)
             yield output

@@ -2,21 +2,22 @@ import json
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 
 from agent.api.container import ApiContainer
 from agent.api.exc.http import AppError
 from agent.api.v1.deps.root import get_container, get_repos, get_settings
 from agent.api.v1.payload.references import (
     IndexStatusResponse,
-    ReferenceChunkItem,
+    ReferenceChunkDetail,
+    ReferenceChunkPreview,
     ReferenceChunksResponse,
     ReferenceResponse,
 )
 from agent.api.settings import ApiSettings
 from agent.deps.models import VectorDBModel
 from agent.db.models import IndexStatus
-from agent.models.document import DocumentMetadata
+from agent.models.document import DocumentMetadata, ScoredChunk
 from agent.repos.protocols import ReferenceRecord
 from agent.api.container import Repositories
 from agent.storages.config import AnchorFields
@@ -25,6 +26,9 @@ from agent.storages.reference_files import ReferenceFileStorage
 router = APIRouter()
 
 PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
+CHUNK_PREVIEW_LENGTH = 240
+DEFAULT_CHUNK_PAGE_SIZE = 50
+MAX_CHUNK_PAGE_SIZE = 100
 
 
 def _to_response(record: ReferenceRecord) -> ReferenceResponse:
@@ -130,12 +134,88 @@ async def get_reference(
     return _to_response(record)
 
 
+@router.delete(
+    "/{reference_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_reference(
+    reference_id: str,
+    container: Annotated[ApiContainer, Depends(get_container)],
+) -> Response:
+    async with container.session_factory() as session:
+        repos = container.repos(session)
+        record = await repos.references.get(reference_id)
+        if record is None:
+            raise AppError("NotFound", f"Reference {reference_id} not found", 404)
+
+        milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
+        await milvus.delete_by_filter({AnchorFields.FILE_ID: [reference_id]})
+
+        deleted = await repos.references.delete(reference_id)
+        if not deleted:
+            raise AppError("NotFound", f"Reference {reference_id} not found", 404)
+        await session.commit()
+
+    storage = ReferenceFileStorage(container.references_dir)
+    storage.delete_reference(reference_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get("/{reference_id}/chunks", response_model=ReferenceChunksResponse)
 async def list_reference_chunks(
     reference_id: str,
     repos: Annotated[Repositories, Depends(get_repos)],
     container: Annotated[ApiContainer, Depends(get_container)],
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=MAX_CHUNK_PAGE_SIZE)] = (
+        DEFAULT_CHUNK_PAGE_SIZE
+    ),
 ) -> ReferenceChunksResponse:
+    await get_completed_reference(reference_id, repos)
+
+    milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
+    scored = await milvus.retrieve_all_by_filter({AnchorFields.FILE_ID: [reference_id]})
+    ordered = sorted(scored.root, key=chunk_preview_sort_key)
+    return ReferenceChunksResponse(
+        total=len(ordered),
+        items=[
+            to_chunk_preview(scored_chunk, ordinal=index)
+            for index, scored_chunk in enumerate(
+                ordered[offset : offset + limit], start=offset + 1
+            )
+        ],
+    )
+
+
+@router.get("/{reference_id}/chunks/{chunk_id}", response_model=ReferenceChunkDetail)
+async def get_reference_chunk(
+    reference_id: str,
+    chunk_id: str,
+    repos: Annotated[Repositories, Depends(get_repos)],
+    container: Annotated[ApiContainer, Depends(get_container)],
+) -> ReferenceChunkDetail:
+    record = await get_completed_reference(reference_id, repos)
+    milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
+    scored = await milvus.retrieve_by_filter(
+        {AnchorFields.FILE_ID: [reference_id], AnchorFields.ID: [chunk_id]}, limit=1
+    )
+    if not scored.root:
+        raise AppError("NotFound", f"Chunk {chunk_id} not found", 404)
+
+    chunk = scored.root[0].chunk
+    return ReferenceChunkDetail(
+        id=str(chunk.chunk_id),
+        document_id=reference_id,
+        document_name=record.doc_name,
+        page_number=chunk_page_number(scored.root[0]),
+        text=chunk.text,
+    )
+
+
+async def get_completed_reference(
+    reference_id: str, repos: Repositories
+) -> ReferenceRecord:
     record = await repos.references.get(reference_id)
     if record is None:
         raise AppError("NotFound", f"Reference {reference_id} not found", 404)
@@ -145,24 +225,32 @@ async def list_reference_chunks(
             f"Reference indexing not completed (status={record.status.value})",
             422,
         )
+    return record
 
-    milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
-    scored = await milvus.retrieve_by_filter({AnchorFields.FILE_ID: [reference_id]})
-    items: list[ReferenceChunkItem] = []
-    for scored_chunk in scored.root:
-        meta: dict[str, object] = {
-            "doc_name": record.doc_name,
-            "reference_id": reference_id,
-            "collection_id": record.collection_id,
-        }
-        if isinstance(scored_chunk.chunk.metadata, DocumentMetadata):
-            meta["filename"] = scored_chunk.chunk.metadata.filename
-            meta["page_idx"] = scored_chunk.chunk.metadata.pageidx
-        items.append(
-            ReferenceChunkItem(
-                id=str(scored_chunk.chunk.chunk_id),
-                text=scored_chunk.chunk.text,
-                metadata=meta,
-            )
-        )
-    return ReferenceChunksResponse(items=items)
+
+def chunk_page_number(scored_chunk: ScoredChunk) -> int | None:
+    if isinstance(scored_chunk.chunk.metadata, DocumentMetadata):
+        return scored_chunk.chunk.metadata.pageidx
+    return None
+
+
+def chunk_preview_sort_key(scored_chunk: ScoredChunk) -> tuple[int, int, str]:
+    page_number = chunk_page_number(scored_chunk)
+    if page_number is None:
+        return (1, 0, str(scored_chunk.chunk.chunk_id))
+    return (0, -page_number, str(scored_chunk.chunk.chunk_id))
+
+
+def to_chunk_preview(
+    scored_chunk: ScoredChunk, *, ordinal: int
+) -> ReferenceChunkPreview:
+    text = scored_chunk.chunk.text.strip()
+    preview = text[:CHUNK_PREVIEW_LENGTH]
+    if len(text) > CHUNK_PREVIEW_LENGTH:
+        preview = f"{preview.rstrip()}…"
+    return ReferenceChunkPreview(
+        id=str(scored_chunk.chunk.chunk_id),
+        ordinal=ordinal,
+        page_number=chunk_page_number(scored_chunk),
+        preview=preview,
+    )

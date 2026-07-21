@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import rmtree
 
 
 class ReferenceFileStorage:
@@ -22,3 +23,9 @@ class ReferenceFileStorage:
         if path.is_absolute():
             return path
         return self.base_dir.parent / file_path
+
+    def delete_reference(self, reference_id: str) -> None:
+        """Remove all persisted files belonging to a reference."""
+        reference_dir = self.base_dir / reference_id
+        if reference_dir.exists():
+            rmtree(reference_dir)

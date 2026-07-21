@@ -174,9 +174,26 @@ class FunctionCallArgsDoneEvent(BaseModel):
     item: FunctionCall
 
 
+class TextItemOutput(BaseModel):
+    type: Literal["input_text"] = "input_text"
+    text: str
+
+
+class ImageItemOutput(BaseModel):
+    type: Literal["input_image"] = "input_image"
+    detail: Literal["low", "auto", "high"] = "low"
+    image_url: str
+
+
+type ItemOutput = Annotated[
+    TextItemOutput | ImageItemOutput,
+    Field(discriminator="type"),
+]
+
+
 class FunctionCallOutput(BaseModel):
     call_id: str
-    output: str
+    output: list[ItemOutput]
 
 
 class MessageStartEvent(BaseModel):

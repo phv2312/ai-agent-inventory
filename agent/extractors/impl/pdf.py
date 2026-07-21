@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pymupdf
+from pymupdf4llm import to_markdown
 from pydantic import BaseModel
 
 from agent.batched import Batched
@@ -17,7 +18,7 @@ from agent.models.document import Chunk, Document, DocumentMetadata
 
 class PDFExtractorSettings(BaseModel):
     text_splitter_arguments: TextSplitterArguments = TextSplitterArguments(
-        chunk_size=4096,
+        chunk_size=7800,
         chunk_overlap=256,
         encoding_model_name="gpt-4o",
     )
@@ -47,8 +48,7 @@ class PDFExtractor:
         pages_imagepath: list[str] = []
         with pymupdf.Document(filepath) as document:
             for pageidx, page in enumerate(document, start=1):
-                pages_content.append(page.get_text())
-
+                pages_content.append(to_markdown(document, pages=[pageidx - 1]))
                 relpath = self.storage.gen_path(
                     reldir=filepath.name, name=f"page{pageidx}"
                 )
@@ -74,7 +74,7 @@ class PDFExtractor:
 
         chunks = []
         for pageidx, (splitted_texts, imagepath) in enumerate(
-            zip(splitted_texts_list, pages_imagepath), start=1
+            zip(splitted_texts_list, pages_content), start=1
         ):
             chunks.extend(
                 [

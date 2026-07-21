@@ -8,10 +8,12 @@ from anthropic import AsyncAnthropic, AsyncStream
 from anthropic.lib.foundry import AsyncAnthropicFoundry
 from anthropic.types import (
     MessageParam,
+    ImageBlockParam,
     ParsedMessage,
     RawMessageStreamEvent,
     ToolParam,
     ToolResultBlockParam,
+    TextBlockParam,
     ToolUnionParam,
     ToolUseBlockParam,
     WebSearchTool20250305Param,
@@ -30,9 +32,11 @@ from agent.models.streams import (
     FunctionCallStartEvent,
     FunctionCallOutput,
     FunctionType,
+    ImageItemOutput,
     MessageDoneEvent,
     MessageStartEvent,
     StreamEvent,
+    TextItemOutput,
     TextContentBlock,
     TextDoneEvent,
     ThinkingContentBlock,
@@ -86,11 +90,32 @@ class AnthropicProvider(IChatModel):
                     role="assistant",
                 )
             elif isinstance(message, FunctionCallOutput):
+                output_content: list[TextBlockParam | ImageBlockParam] = []
+                for item in message.output:
+                    if isinstance(item, TextItemOutput):
+                        output_content.append(
+                            TextBlockParam(type="text", text=item.text),
+                        )
+                    elif isinstance(item, ImageItemOutput):
+                        output_content.append(
+                            ImageBlockParam(
+                                type="image",
+                                source={
+                                    "type": "url",
+                                    "url": item.image_url,
+                                },
+                            ),
+                        )
+                    else:
+                        raise TypeError(
+                            f"Unsupported tool output: {type(item)}",
+                        )
+
                 param = MessageParam(
                     content=[
                         ToolResultBlockParam(
                             tool_use_id=message.call_id,
-                            content=message.output,
+                            content=output_content,
                             type="tool_result",
                         ),
                     ],

@@ -206,6 +206,41 @@ class Milvus:
             ],
         )
 
+    async def retrieve_all_by_filter(
+        self,
+        filtered_dict: dict[str, Sequence[str | int]],
+    ) -> ScoredChunks:
+        filter_expr = " and ".join(
+            [f"{key} in {str(value)}" for key, value in filtered_dict.items()],
+        )
+        records: list[dict[str, Any]] = []
+        offset = 0
+        while True:
+            batch = await self.async_client.query(
+                collection_name=self.collection_name,
+                filter=filter_expr,
+                output_fields=["*"],
+                limit=self.batch_size,
+                offset=offset,
+            )
+            records.extend(batch)
+            if len(batch) < self.batch_size:
+                break
+            offset += self.batch_size
+
+        return ScoredChunks(
+            [
+                self.config.parse_record(
+                    {
+                        "id": record[self.config.fieldname_id],
+                        "distance": 0.0,
+                        "entity": record,
+                    },
+                )
+                for record in records
+            ],
+        )
+
     async def search(
         self,
         query: BaseEmbedding,

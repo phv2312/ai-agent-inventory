@@ -3,7 +3,7 @@ from typing import Literal
 from rich.console import Console
 from rich.panel import Panel
 
-from agent.models.streams import FunctionCallOutput
+from agent.models.streams import FunctionCallOutput, TextItemOutput
 from agent.tools.acts.models import BaseToolCall, IToolAct, ToolActResult
 from agent.tools.schemas.registry import ThinkParameters, ToolNames
 from agent.tracer import tool_span, tracer_provider
@@ -22,7 +22,7 @@ class ThinkAct(IToolAct[ThinkToolCall]):
             yield f"{tool_call.params.reflection}\n\n"
             output = FunctionCallOutput(
                 call_id=tool_call.id,
-                output=tool_call.params.reflection,
+                output=[TextItemOutput(text=tool_call.params.reflection)],
             )
             span.set_output(output)
             yield output
