@@ -184,7 +184,12 @@ function ensureMermaidInitialized(mermaid: MermaidApi): void {
         theme: 'base',
         themeVariables: buildMermaidThemeVariables(),
         securityLevel: 'strict',
-        flowchart: { useMaxWidth: true },
+        flowchart: {
+            useMaxWidth: true,
+            padding: 8,
+            nodeSpacing: 25,
+            rankSpacing: 25,
+        },
     });
     mermaidInitialized = true;
 }
@@ -226,7 +231,8 @@ async function renderMermaidNow(
         wrap.innerHTML = svg;
         const renderedSvg = wrap.querySelector('svg');
         if (renderedSvg instanceof SVGSVGElement) {
-            renderedSvg.style.width = '100%';
+            renderedSvg.style.width = '97%';
+            renderedSvg.style.maxWidth = '97%';
             renderedSvg.style.height = 'auto';
         }
     } catch (e: unknown) {

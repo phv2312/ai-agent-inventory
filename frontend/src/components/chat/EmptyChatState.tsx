@@ -1,6 +1,5 @@
 import { getGreeting } from '../../utils/greeting';
 import { MessageInput } from './MessageInput';
-import { QuickPromptPills } from './QuickPromptPills';
 
 interface Props {
     inputText: string;
@@ -19,9 +18,6 @@ export function EmptyChatState({ inputText, onInputTextChange }: Props) {
                     text={inputText}
                     onTextChange={onInputTextChange}
                 />
-            </div>
-            <div className="mt-4 w-full max-w-2xl">
-                <QuickPromptPills onSelect={onInputTextChange} />
             </div>
         </div>
     );
