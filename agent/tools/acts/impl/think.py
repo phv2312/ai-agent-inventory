@@ -19,7 +19,7 @@ class ThinkToolCall(BaseToolCall[ThinkParameters]):
 class ThinkAct(IToolAct[ThinkToolCall]):
     async def act(self, tool_call: ThinkToolCall) -> ToolActResult:
         with tool_span(tracer, "ThinkAct.act", tool_call) as span:
-            yield f"{tool_call.params.reflection}\n\n"
+            yield f"Think: {tool_call.params.reflection}\n\n"
             output = FunctionCallOutput(
                 call_id=tool_call.id,
                 output=[TextItemOutput(text=tool_call.params.reflection)],

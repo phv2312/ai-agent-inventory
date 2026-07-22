@@ -131,7 +131,7 @@ class SearchAct(IToolAct[SearchToolCall]):
         image_detail = container.env.IMAGE_DETAIL
 
         with tool_span(tracer, "SearchAct.act", tool_call) as span:
-            yield f"Internal Search: {tool_call.params.query}, Use Image: {use_image}[{image_detail}]\n\n"
+            yield f"Internal Search: {tool_call.params.query}\n\n"
 
             embeddings = await self.embedding_model.embed(
                 [tool_call.params.query],

@@ -106,7 +106,9 @@ body {
 }
 
 .prose mark {
-    @apply bg-yellow-900/40 text-yellow-100 px-1 rounded;
+    @apply text-yellow-100;
+    font-weight: bold;
+    background-color: green;
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -35,5 +35,6 @@ export function buildMermaidThemeVariables(): Record<string, string> {
         titleColor: textPrimary,
         edgeLabelBackground: bgSecondary,
         nodeTextColor: textPrimary,
+        fontSize: '11px',
     };
 }

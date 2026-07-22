@@ -1,0 +1,121 @@
+## Few-shot citation examples
+
+### Example 1 — Internal documents only
+
+User: What is the approval deadline?
+
+Retrieved evidence:
+- Chunk-ID: policy-approval-17
+  Content: "All approvals must be submitted within five business days."
+- Chunk-ID: policy-approval-22
+  Content: "Late approvals require director review."
+
+Assistant:
+Approvals must be submitted within five business days. <CITE>policy-approval-17</CITE>
+Late approvals require director review. <CITE>policy-approval-22</CITE>
+
+```snippets
+[
+  {
+    "chunk-id": "policy-approval-17",
+    "chunk-snippets": [
+      "All approvals must be submitted within five business days."
+    ]
+  },
+  {
+    "chunk-id": "policy-approval-22",
+    "chunk-snippets": [
+      "Late approvals require director review."
+    ]
+  }
+]
+
+### Example 2 — Web sources only
+
+User: When was Python 3.13 released?
+
+Retrieved web evidence:
+- https://www.python.org/downloads/release/python-3130/
+
+Assistant:
+Python 3.13.0 was released on October 7, 2024. [Python release announcement](https://www.python.org/downloads/release/python-3130/)
+
+### Example 3 — Mixed internal and web sources
+
+User: Does our policy require encryption, and what standard does it reference?
+
+Retrieved evidence:
+- Chunk-ID: security-policy-08
+  Content: "Customer data must be encrypted at rest and in transit."
+- https://csrc.nist.gov/pubs/fips/197/final
+  Content: "FIPS 197 specifies the Advanced Encryption Standard (AES)."
+
+Assistant:
+Customer data must be encrypted both at rest and in transit. <CITE>security-policy-08</CITE>
+AES is specified by NIST FIPS 197. [NIST FIPS 197](https://csrc.nist.gov/pubs/fips/197/final)
+
+```snippets
+[
+  {
+    "chunk-id": "security-policy-08",
+    "chunk-snippets": [
+      "Customer data must be encrypted at rest and in transit."
+    ]
+  }
+]
+```
+
+### Example 4 — No supported evidence
+
+User: What is the retention period?
+
+Retrieved evidence:
+- No internal chunks or web sources mention a retention period.
+
+Assistant:
+I could not determine the retention period from the retrieved sources. Please provide a relevant document or allow an additional search.
+
+### Example 5 — Multi-hop internal documents
+
+User: Which department owns the system that requires quarterly access reviews?
+
+Retrieved evidence, hop 1:
+- Chunk-ID: access-review-12
+  Content: "The Atlas system requires access reviews every quarter."
+
+Retrieved evidence, hop 2:
+- Chunk-ID: system-ownership-04
+  Content: "The Identity Operations department owns the Atlas system."
+
+Assistant:
+The system requiring quarterly access reviews is Atlas. <CITE>access-review-12</CITE>
+Atlas is owned by the Identity Operations department. <CITE>system-ownership-04</CITE>
+Therefore, the Identity Operations department owns the system that requires quarterly access reviews. <CITE>access-review-12</CITE> <CITE>system-ownership-04</CITE>
+
+```snippets
+[
+  {
+    "chunk-id": "access-review-12",
+    "chunk-snippets": [
+      "The Atlas system requires access reviews every quarter."
+    ]
+  },
+  {
+    "chunk-id": "system-ownership-04",
+    "chunk-snippets": [
+      "The Identity Operations department owns the Atlas system."
+    ]
+  }
+]
+```
+
+### Citation behavior requirements
+
+- Put citations immediately after the claim they support.
+- Never invent a Chunk-ID, URL, source title, or citation.
+- If a claim lacks retrieved evidence, omit it or explicitly state that the evidence is unavailable.
+- If one or more internal chunks are cited, append exactly one snippets code block after the answer.
+- Include only internal chunks cited in the answer; do not include web sources in this block.
+- Each chunk-snippets value must be a JSON array of concise, verbatim excerpts from that chunk.
+- If no internal chunk is cited, do not output a snippets block.
+- For multi-hop conclusions, cite every chunk that establishes a required hop; do not cite only the final hop.

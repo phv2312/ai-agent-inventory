@@ -13,7 +13,6 @@ from agent.models.streams import (
 class ToolNames(StrEnum):
     THINK_TOOL = "think_tool"
     SEARCH_TOOL = "internal_search_tool"
-    INLINE_CITATIONS_TOOL = "inline_citations_tool"
     WEB_SEARCH_TOOL = "web_search_tool"
     VISUALIZE_README_TOOL = "visualize_read_me"
 
@@ -35,8 +34,12 @@ class ThinkParameters(BaseToolParameters):
     reflection: str = Field(
         ...,
         description=(
-            "Your reflection. No list or bullet points. "
-            "Should be short and direct, ideally within 100 words."
+            "Private reasoning and retrieval plan. Decide whether the question "
+            "is single-hop or multi-hop. For multi-hop questions, identify the "
+            "ordered subquestions, the bridge entity/fact needed at each step, "
+            "and the evidence required before answering. Use short prose only; "
+            "no lists, bullets, citations, or user-facing text. Keep it under "
+            "150 words."
         ),
     )
 
@@ -44,22 +47,33 @@ class ThinkParameters(BaseToolParameters):
 class SearchParameters(BaseToolParameters):
     query: str = Field(
         ...,
-        description="Search query describing the information to retrieve",
+        description=(
+            "A single focused evidence-seeking query for one retrieval hop. "
+            "Include the relevant entity, relation, constraint, and requested "
+            "fact. Do not combine unrelated subquestions in one query."
+        ),
     )
     granularity: Literal["section", "page", "document"] = Field(
         ...,
         description=(
-            "Retrieval level: section for targeted queries, "
-            "page for full page content, document for overviews."
+            "Retrieval level: use section for a precise fact or relation, "
+            "page when surrounding context is needed, and document only for "
+            "document-level overviews or when locating the relevant section."
         ),
     )
     page_idxs: list[int] | None = Field(
         ...,
-        description="Optional page indexes to restrict search scope.",
+        description=(
+            "Optional page indexes to restrict this hop. Use when a previous "
+            "hop identified likely relevant pages."
+        ),
     )
     doc_names: list[str] | None = Field(
         ...,
-        description="Optional document names to restrict search scope.",
+        description=(
+            "Optional document names to restrict this hop. Use when the user "
+            "names documents or a prior hop identifies the relevant document."
+        ),
     )
 
 
@@ -70,52 +84,28 @@ class VisualizeReadmeParameters(BaseToolParameters):
     )
 
 
-class InlineCitationItem(BaseToolParameters):
-    chunk_id: str = Field(
-        ...,
-        description="Chunk-ID returned by search_tool.",
-    )
-    snippets: list[str] = Field(
-        ...,
-        min_length=1,
-        description=(
-            "Exact-copy spans from that chunk's body, copied "
-            "character-for-character from search results."
-        ),
-    )
-
-
-class InlineCitationsParameters(BaseToolParameters):
-    citations: list[InlineCitationItem] = Field(
-        ...,
-        min_length=1,
-        description=(
-            "Rows to validate: each chunk_id with exact-copy snippets "
-            "from internal search results."
-        ),
-    )
-
-
 class ToolDescriptionArgs:
     THINK_TOOL: str = (
-        "Acts as a private scratchpad for concise reasoning. Use before "
-        "additional internal searches or escalation to web search when the "
-        "available context is insufficient. Do NOT include lists or prose "
-        "intended for the user; keep `reflection` direct and under 100 words."
+        "Acts as a private scratchpad for concise reasoning and retrieval "
+        "planning. Use before searching when the question may require entity "
+        "resolution, comparison, causal reasoning, or multiple dependent facts. "
+        "Determine whether it is single-hop or multi-hop. For multi-hop tasks, "
+        "decompose the request into ordered evidence-seeking subquestions: "
+        "retrieve the prerequisite or bridge fact first, inspect the result, "
+        "then derive the next search query from retrieved evidence only. "
+        "Never assume an intermediate fact or final conclusion. Do not write "
+        "lists or user-facing prose; keep `reflection` direct and under 150 words."
     )
 
     SEARCH_TOOL: str = (
         "Searches the internal knowledge base for document-grounded context. "
-        "Call before web search when relevant document names are available, "
-        "and use its returned Chunk-IDs for internal citations. Do NOT rely "
-        "on built-in knowledge when internal or web sources are required."
-    )
-
-    INLINE_CITATIONS_TOOL: str = (
-        "Validates exact snippets from internal search results for use in the "
-        "final answer. Call only after `internal_search_tool`, with the "
-        "returned Chunk-IDs and character-for-character snippets that support "
-        "each cited claim."
+        "Use one focused query for each unresolved fact. For multi-hop questions, "
+        "search the first prerequisite or bridge fact, inspect its returned "
+        "content and Chunk-IDs, then issue a follow-up query using entities and "
+        "relations supported by that evidence. Do not merge dependent hops into "
+        "one broad query and do not invent intermediate facts. Use returned "
+        "Chunk-IDs for internal citations. Do NOT rely on built-in knowledge "
+        "when internal or web sources are required."
     )
 
     VISUALIZE_README_TOOL: str = (
@@ -143,11 +133,6 @@ class ToolSchemaRegistry:
             description=ToolDescriptionArgs.SEARCH_TOOL,
             input_schema=SearchParameters.model_json_schema(),
         ),
-        ToolNames.INLINE_CITATIONS_TOOL: FunctionCallDefinition(
-            name=ToolNames.INLINE_CITATIONS_TOOL,
-            description=ToolDescriptionArgs.INLINE_CITATIONS_TOOL,
-            input_schema=InlineCitationsParameters.model_json_schema(),
-        ),
         ToolNames.WEB_SEARCH_TOOL: WebSearchToolDefinition(
             search_context_size="high",
         ),
@@ -159,7 +144,7 @@ class ToolSchemaRegistry:
     }
 
     _AGENTIC_STREAM_TOOL_ORDER: Final[tuple[ToolNames, ...]] = (
-        ToolNames.WEB_SEARCH_TOOL,
+        # ToolNames.WEB_SEARCH_TOOL,
         ToolNames.VISUALIZE_README_TOOL,
     )
 
@@ -174,7 +159,6 @@ class ToolSchemaRegistry:
             tools = [
                 *tools,
                 ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.SEARCH_TOOL],
-                ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.INLINE_CITATIONS_TOOL],
                 ToolSchemaRegistry.MP_NAME_TOOLS[ToolNames.THINK_TOOL],
             ]
 

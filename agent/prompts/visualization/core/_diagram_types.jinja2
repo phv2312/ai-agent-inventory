@@ -3,7 +3,7 @@
 
 ## Declarative diagrams — KN.mermaid only
 
-For standard flowcharts, architecture, pipeline, sequence, and ER diagrams use **`KN.mermaid(source)`** with Mermaid DSL. **Max 8 nodes per widget** — if more, split across **multiple inline fences** with **answer prose between each iframe** (never back-to-back fences). See `_mermaid_patterns.jinja2`.
+For standard flowcharts, architecture, pipeline, sequence, and ER diagrams use **`KN.mermaid(source)`** with Mermaid DSL. **Max 8 nodes per widget**. Each widget must show **one target only**; split large systems and comparison sides across **multiple inline fences**. For comparisons, one fence per target is required and concise headings may introduce consecutive fences. See `_mermaid_patterns.jinja2`.
 
 ````text
 ```visualize:diagram
@@ -63,7 +63,7 @@ The illustrative route is the default for *"how does X work"* with no further qu
 
 Don't mix families in one diagram. If you need both intuition and reference views, use **one** `KN.mermaid` for the reference map and an illustrative raw SVG only when the user clearly wants a visual metaphor.
 
-**Split large systems across iframes** — each `KN.mermaid` widget has **≤8 nodes**. Pattern: write text → fence → write text → fence. **Never** place multiple fences in a row without explanatory prose between them.
+**Split large systems and comparisons across iframes** — each `KN.mermaid` widget has **≤8 nodes** and represents one target. Pattern: label target → fence → label target → fence. Do not place separate comparison targets inside the same Mermaid widget.
 
 **Promise only what you deliver** — if your response mentions two diagram slices, include two fences. Never promise extra diagrams you won't render.
 

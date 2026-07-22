@@ -19,13 +19,29 @@ Mermaid breaks on unquoted labels that contain **newlines** (`\n`), **parenthese
 
 Use **double-quoted** rectangle labels whenever the visible text is not a single plain word.
 
-If the full system needs more → **multiple inline fences**. **Never stack fences back-to-back** — always write answer prose between them (see multi-widget pacing in read_me).
+If the full system needs more → **multiple inline fences**.
 
 **Never** cram 10+ nodes into one Mermaid widget — layout gets cramped and unreadable in chat.
 
+### One target per Mermaid widget (required)
+
+Each Mermaid fence must explain **one target only**: one system, one pipeline,
+one architecture, one flow, or one comparison side. Do **not** put independent
+targets side by side in the same Mermaid source or widget.
+
+For a comparison, render one fence per target. For example, GraphRAG versus
+Traditional RAG requires two separate `visualize:diagram` fences: one solely
+for GraphRAG and one solely for Traditional RAG. This lets each flow use the
+available width and remain readable.
+
+Multiple diagram fences are allowed and recommended for comparisons. Introduce
+each fence with a short label or sentence; consecutive fences are acceptable
+when they are the distinct sides of the same comparison.
+
 ### Multi-widget pacing
 
-When a topic needs more than one diagram iframe, **interleave text and fences**:
+When a topic needs more than one diagram iframe, use a short label or bridge
+to make the purpose of each widget clear:
 
 ```
 [Intro: what we're mapping]
@@ -37,7 +53,8 @@ When a topic needs more than one diagram iframe, **interleave text and fences**:
 
 - Prose lives in your **normal response**, not in the fence body.
 - Each bridge paragraph should stand alone — a reader who skips a diagram still knows why the next one exists.
-- **Forbidden:** consecutive fences with zero answer text between them.
+- For comparison sides, a concise heading before each fence is sufficient;
+  do not combine those sides inside one Mermaid widget.
 
 ### Split strategy
 
@@ -45,6 +62,34 @@ When a topic needs more than one diagram iframe, **interleave text and fences**:
 2. **Detail widgets** — one subsystem per iframe (auth flow, data path, worker layer, etc.).
 3. **Repeat anchor nodes** across widgets if needed — separate iframes, same labels are fine.
 4. **One primary flow per widget** — avoid every-node-connects-to-every-node meshes.
+5. **One target per widget** — comparisons use separate widgets, never
+   side-by-side target flows in one widget.
+
+### Comparison example: separate targets
+
+Write normal response text such as `### GraphRAG`, then render this fence:
+
+```html
+<script>
+KN.mermaid(`flowchart LR
+  Extract[Extract entities and relations] --> Build[Build graph]
+  Build --> Traverse[Traverse relevant subgraph]
+  Traverse --> Answer[Generate answer]
+`);
+</script>
+```
+
+Then write `### Traditional RAG` and render a second fence:
+
+```html
+<script>
+KN.mermaid(`flowchart LR
+  Chunk[Chunk documents] --> Embed[Embed chunks]
+  Embed --> Retrieve[Retrieve top-k]
+  Retrieve --> Answer[Generate answer]
+`);
+</script>
+```
 
 ### Tiered architecture (Milvus-style)
 

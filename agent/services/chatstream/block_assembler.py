@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 
 from sse_starlette import ServerSentEvent
@@ -12,17 +13,19 @@ from agent.models.streams import StreamEvent, TextDeltaEvent
 from agent.services.visual_widget.fence_parser import (
     FenceEvent,
     FenceEventType,
-    VisualizeFenceParser,
+    FenceParser,
 )
 
 
 @dataclass
 class ContentBlockTransformer:
-    fence_parser: VisualizeFenceParser = field(default_factory=VisualizeFenceParser)
+    fence_parser: FenceParser = field(default_factory=FenceParser)
     next_order: int = 0
     current_order: int | None = None
     current_type: ContentBlockType | None = None
     current_event: ContentBlockEventType | None = None
+    snippet_content: str = ""
+    mp_chunk_snippets: dict[str, list[str]] = field(default_factory=dict)
 
     def transform(self, fragment: str) -> list[ContentBlock]:
         blocks: list[ContentBlock] = []
@@ -37,12 +40,13 @@ class ContentBlockTransformer:
         return blocks
 
     def finalize(self) -> list[ContentBlock]:
+        blocks = self.flush()
         match self.current_event:
             case ContentBlockEventType.OPEN | ContentBlockEventType.DELTA:
-                return self.close_current()
+                blocks.extend(self.close_current())
             case _:
                 pass
-        return []
+        return blocks
 
     def handle_fence_event(self, event: FenceEvent) -> list[ContentBlock]:
         self.update_fence_status(event.type)
@@ -62,7 +66,38 @@ class ContentBlockTransformer:
                     event.module or "unknown",
                     event.error_message or "Invalid visualize fence",
                 )
+            case FenceEventType.OPEN_SNIPPET:
+                self.snippet_content = ""
+            case FenceEventType.SNIPPET_DELTA:
+                self.snippet_content += event.content
+            case FenceEventType.CLOSE_SNIPPET:
+                self.merge_snippet_content()
+                self.snippet_content = ""
         return []
+
+    def merge_snippet_content(self) -> None:
+        try:
+            payload = json.loads(self.snippet_content)
+        except json.JSONDecodeError:
+            return
+        if not isinstance(payload, list):
+            return
+
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            chunk_id = item.get("chunk-id")
+            snippets = item.get("chunk-snippets")
+            if not isinstance(chunk_id, str) or not isinstance(snippets, list):
+                continue
+            normalized_chunk_id = chunk_id.strip()
+            normalized_snippets = [
+                snippet for snippet in snippets if isinstance(snippet, str) and snippet
+            ]
+            if normalized_chunk_id and normalized_snippets:
+                self.mp_chunk_snippets.setdefault(normalized_chunk_id, []).extend(
+                    normalized_snippets,
+                )
 
     def update_fence_status(self, event_type: FenceEventType) -> None:
         mp_event_status: dict[FenceEventType, ContentBlockEventType] = {
@@ -164,7 +199,7 @@ class ContentBlockTransformer:
 @dataclass
 class ContentBlockAssembler:
     transformer: ContentBlockTransformer = field(
-        default_factory=lambda: ContentBlockTransformer(VisualizeFenceParser()),
+        default_factory=lambda: ContentBlockTransformer(FenceParser()),
     )
 
     def handle(self, event: StreamEvent) -> list[ServerSentEvent]:

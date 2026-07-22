@@ -53,10 +53,7 @@ class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
                 call_id=tool_call.id,
                 output=[
                     TextItemOutput(
-                        text=(
-                            f"Here is the guide-line\n{response_str}\n"
-                            "**Do not repeat** the same tool call with same argument: module twice."
-                        ),
+                        text=response_str,
                     ),
                 ],
             )
