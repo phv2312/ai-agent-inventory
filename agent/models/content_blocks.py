@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class ContentBlockType(StrEnum):
     TEXT = "text"
     VISUAL_WIDGET = "visual_widget"
+    SNIPPET = "snippet"
 
 
 class WidgetBlockStatus(StrEnum):

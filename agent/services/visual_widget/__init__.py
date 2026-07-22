@@ -1,3 +1,3 @@
-from agent.services.visual_widget.fence_parser import VisualizeFenceParser
+from agent.services.visual_widget.fence_parser import FenceParser
 
-__all__ = ["VisualizeFenceParser"]
+__all__ = ["FenceParser"]

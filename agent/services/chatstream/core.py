@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 
 from sse_starlette import ServerSentEvent
 
-from agent.services.citations import mp_chunk_id_snippets_from_items
 from agent.deps.container import Container
 from agent.models.content_blocks import (
     ContentBlock,
@@ -13,9 +12,7 @@ from agent.models.content_blocks import (
 )
 from agent.models.messages import AssistantMessage, UserMessage
 from agent.models.streams import (
-    CustomFunctionCall,
     ErrorEvent,
-    FunctionCallArgsDoneEvent,
     FunctionCallProgressEvent,
     StreamEvent,
     TextDeltaEvent,
@@ -30,11 +27,7 @@ from agent.services.chatstream.models import (
     StreamErrorData,
     is_untitled_conversation,
 )
-from agent.tools.schemas.registry import (
-    InlineCitationsParameters,
-    ToolNames,
-    ToolSchemaRegistry,
-)
+from agent.tools.schemas.registry import ToolSchemaRegistry
 
 
 @dataclass
@@ -52,28 +45,6 @@ class ChatStreamService:
     def __init__(self, agent_container: Container) -> None:
         self.agent_container = agent_container
         self.last_state = ChatStreamState()
-
-    def update_inline_citation_state(
-        self, state: ChatStreamState, event: StreamEvent
-    ) -> None:
-        if isinstance(event, FunctionCallArgsDoneEvent) and isinstance(
-            event.item, CustomFunctionCall
-        ):
-            func_call = event.item
-            if func_call.name == ToolNames.INLINE_CITATIONS_TOOL:
-                try:
-                    params = InlineCitationsParameters.model_validate_json(
-                        func_call.arguments
-                    )
-                    mp_updates = mp_chunk_id_snippets_from_items(params.citations)
-                    for chunk_id, snippets in mp_updates.items():
-                        state.mp_chunk_snippets.setdefault(chunk_id, []).extend(
-                            snippets
-                        )
-                        if chunk_id not in state.validated_chunk_ids:
-                            state.validated_chunk_ids.append(chunk_id)
-                except Exception:
-                    pass
 
     async def stream(
         self,
@@ -110,7 +81,6 @@ class ChatStreamService:
                 memory_md_content=system_prompt or "",
                 request_id=request_id,
             ):
-                self.update_inline_citation_state(state, event)
                 if isinstance(event, TextDeltaEvent):
                     for content_block in transformer.transform(event.content):
                         content_block_events.append(content_block)
@@ -136,6 +106,8 @@ class ChatStreamService:
             state.content_blocks = PersistedContentBlock.from_events(
                 content_block_events,
             )
+            state.mp_chunk_snippets = transformer.mp_chunk_snippets.copy()
+            state.validated_chunk_ids = list(state.mp_chunk_snippets)
             state.answer_text = "".join(
                 block.text or ""
                 for block in state.content_blocks

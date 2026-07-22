@@ -4,30 +4,10 @@ from __future__ import annotations
 
 import html
 import re
-from collections.abc import Sequence
-from typing import Protocol
 
 from agent.models.document import ScoredChunk
 
 from .marker import highlight_snippets
-
-
-class CitationItem(Protocol):
-    chunk_id: str
-    snippets: list[str]
-
-
-def mp_chunk_id_snippets_from_items(
-    items: Sequence[CitationItem],
-) -> dict[str, list[str]]:
-    """Merge citation rows into ``chunk_id -> snippets``."""
-    mp_chunk_snippets: dict[str, list[str]] = {}
-    for item in items:
-        chunk_id = str(item.chunk_id).strip()
-        if not chunk_id:
-            continue
-        mp_chunk_snippets.setdefault(chunk_id, []).extend(item.snippets)
-    return mp_chunk_snippets
 
 
 def apply_snippet_highlights(
