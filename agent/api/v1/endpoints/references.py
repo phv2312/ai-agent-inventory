@@ -21,7 +21,7 @@ from agent.models.document import DocumentMetadata, ScoredChunk
 from agent.repos.protocols import ReferenceRecord
 from agent.api.container import Repositories
 from agent.storages.config import AnchorFields
-from agent.storages.reference_files import ReferenceFileStorage
+from agent.storages.files.exporter import ReferenceExporter
 
 router = APIRouter()
 
@@ -109,17 +109,23 @@ async def upload_reference(
             metadata_json=metadata_json,
         )
 
-        storage = ReferenceFileStorage(container.references_dir)
-        saved_path = storage.save_pdf(record.id, filename, raw)
-        rel_path = f"references/{record.id}/{Path(filename).name}"
-        updated = await repos.references.set_file_path(record.id, rel_path)
+        safe_filename = Path(filename).name
+        exporter = ReferenceExporter(record.id)
+        source_key = exporter.source_key(safe_filename)
+        saved_key = container.agent.storage.write_bytes(source_key, raw)
+        updated = await repos.references.set_file_path(record.id, saved_key)
         if updated is None:
             raise AppError("NotFound", "Reference not found after create", 404)
 
         await session.commit()
         response = _to_response(updated)
 
-    container.indexing_worker().schedule(updated.id, saved_path, collection_id)
+    container.indexing_worker().schedule(
+        updated.id,
+        saved_key,
+        safe_filename,
+        collection_id,
+    )
     return response
 
 
@@ -157,8 +163,7 @@ async def delete_reference(
             raise AppError("NotFound", f"Reference {reference_id} not found", 404)
         await session.commit()
 
-    storage = ReferenceFileStorage(container.references_dir)
-    storage.delete_reference(reference_id)
+    container.agent.storage.delete_prefix(ReferenceExporter(reference_id).prefix)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

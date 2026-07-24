@@ -28,12 +28,10 @@ def convert_to_base64(remotepath: str) -> str:
 
     from agent.deps.container import container
 
-    path = container.storage.get_localpath(remotepath)
-
-    mime_type, _ = mimetypes.guess_type(path.name)
+    mime_type, _ = mimetypes.guess_type(remotepath)
     mime_type = mime_type or "application/octet-stream"
 
-    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    encoded = base64.b64encode(container.storage.read_bytes(remotepath)).decode("ascii")
     return f"data:{mime_type};base64,{encoded}"
 
 
@@ -76,11 +74,7 @@ class ImageFunctionOutput(FunctionCallOutput):
 
         for scored_chunk in scored_chunks.iter():
             metadata = scored_chunk.chunk.metadata
-
-            # de-dup
             image_path = metadata.rendered_page_path
-            if image_path in image_paths:
-                continue
 
             output.append(
                 TextItemOutput(
@@ -88,9 +82,13 @@ class ImageFunctionOutput(FunctionCallOutput):
                         f"Document: {metadata.filename}\n\n"
                         f"Chunk-ID: {scored_chunk.chunk.chunk_id}\n\n"
                         "Source: Internal\n\n"
+                        f"{scored_chunk.text}"
                     ),
                 ),
             )
+
+            if image_path in image_paths:
+                continue
 
             image_paths.add(image_path)
             output.append(

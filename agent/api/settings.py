@@ -1,13 +1,12 @@
-from pathlib import Path
-
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from agent.env import StorageEnv
 
 
-class ApiSettings(BaseSettings):
+class ApiSettings(StorageEnv):
     model_config = SettingsConfigDict(case_sensitive=False, env_prefix="AGENT_API_")
 
-    DATA_DIR: Path = Field(default=Path(".agent-api-data"))
     DATABASE_URL: str | None = None
     MAX_UPLOAD_BYTES: int = Field(default=50 * 1024 * 1024)
     MAX_MESSAGE_LENGTH: int = Field(default=32_000)

@@ -1,6 +1,5 @@
 import asyncio
 from dataclasses import dataclass
-from pathlib import Path
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -8,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from agent.api.container import ApiContainer
 from agent.deps.models import EmbeddingModel, ExtractorModel, VectorDBModel
 from agent.db.models import IndexStatus
+from agent.extractors.utils import materialized_file
 from agent.models.document import DocumentMetadata
 from agent.repos.reference import SQLReferenceRepository
-from agent.storages.reference_files import ReferenceFileStorage
 
 logger = structlog.get_logger(__name__)
 
@@ -18,7 +17,8 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class IndexJob:
     reference_id: str
-    pdf_path: Path
+    source_key: str
+    filename: str
     collection_id: str
 
 
@@ -33,18 +33,19 @@ class IndexingWorker:
         self.container = container
         self.session_factory = session_factory
         self.consumer_count = consumer_count
-        self.file_storage = ReferenceFileStorage(container.references_dir)
         self._semaphore = asyncio.Semaphore(consumer_count)
 
     def schedule(
         self,
         reference_id: str,
-        pdf_path: Path,
+        source_key: str,
+        filename: str,
         collection_id: str,
     ) -> None:
         job = IndexJob(
             reference_id=reference_id,
-            pdf_path=pdf_path,
+            source_key=source_key,
+            filename=filename,
             collection_id=collection_id,
         )
         asyncio.create_task(
@@ -65,10 +66,15 @@ class IndexingWorker:
 
         try:
             extractor = self.container.agent.extractors.get(ExtractorModel.PDF)
-            document = await extractor.aextract(
-                job.pdf_path,
-                fileid=job.reference_id,
-            )
+            with materialized_file(
+                self.container.agent.storage,
+                job.source_key,
+                job.filename,
+            ) as filepath:
+                document = await extractor.aextract(
+                    filepath,
+                    fileid=job.reference_id,
+                )
             embedding_model = self.container.agent.embeddings.get(
                 EmbeddingModel.AZURE_OPENAI,
             )

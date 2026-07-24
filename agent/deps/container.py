@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
-from pathlib import Path
 from typing import Any, Callable
 
 from agent.programs import BaseProgram, NameSuggestionProgram
@@ -24,7 +23,8 @@ from agent.extractors import (
 )
 from agent.storages.vectordb import Milvus
 from agent.env import Env
-from agent.storages.file import FileStorage
+from agent.storages.files.impl.local import LocalFileStorage
+from agent.storages.files.interface import IFileStorage
 
 from .models import (
     EmbeddingModel,
@@ -127,7 +127,7 @@ class ExtractorProvider(
     def __init__(
         self,
         env: Env,
-        storage: FileStorage,
+        storage: IFileStorage,
         text_splitter_provider: TextSplitterProvider,
     ) -> None:
         self.env = env
@@ -166,7 +166,7 @@ class VectorDBProvider(
     @lru_cache(maxsize=1)
     def init_milvus(self) -> Milvus:
         return Milvus(
-            uri=self.env.MILVUS_DB_URI,
+            uri=self.env.resolved_milvus_db_uri(),
             collection_name=self.env.MILVUS_DB_COLLECTION_NAME,
         )
 
@@ -233,10 +233,10 @@ class AgenticStrategyProvider:
 
 class Container:
     def __init__(
-        self, env: Env | None = None, storage: FileStorage | None = None
+        self, env: Env | None = None, storage: IFileStorage | None = None
     ) -> None:
         self.env = env or Env()
-        self.storage = storage or FileStorage(imagedir=Path(".agent-api-data/images"))
+        self.storage = storage or LocalFileStorage(self.env.DATA_DIR)
 
     @cached_property
     def embeddings(self) -> EmbeddingProvider:

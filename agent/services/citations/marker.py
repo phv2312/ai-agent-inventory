@@ -1,5 +1,3 @@
-"""Highlight matched evidence spans in chunk text."""
-
 from .matcher import find_quote_span
 
 
@@ -9,7 +7,6 @@ def highlight_snippet(
     *,
     mark_id: str | None = None,
 ) -> str:
-    """Wrap the first fuzzy match of *snippet* in ``<mark>``."""
     if not snippet.strip():
         return text
 
@@ -33,7 +30,6 @@ def highlight_snippets(
     *,
     chunk_id: str,
 ) -> str:
-    """Apply multiple snippet highlights, longest first to reduce overlap."""
     highlighted = text
     ordered = sorted(
         {snippet.strip() for snippet in snippets if snippet.strip()},
