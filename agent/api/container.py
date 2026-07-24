@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from agent.api.settings import ApiSettings
 from agent.deps.container import Container
 from agent.db.session import create_engine, create_session_factory, init_db
+from agent.env import Env
 from agent.repos.citation import SQLCitationRepository
 from agent.repos.collection import SQLCollectionRepository
 from agent.repos.conversation import SQLConversationRepository
@@ -37,17 +37,11 @@ class ApiContainer:
     def __init__(self, settings: ApiSettings | None = None) -> None:
         self.settings = settings or ApiSettings()
         self.settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
-        (self.settings.DATA_DIR / "references").mkdir(parents=True, exist_ok=True)
         self.engine: AsyncEngine = create_engine(self.settings.resolved_database_url())
         self.session_factory: async_sessionmaker[AsyncSession] = create_session_factory(
             self.engine
         )
-        self.agent = Container()
-        ref_images = self.settings.DATA_DIR / "images"
-        ref_images.mkdir(parents=True, exist_ok=True)
-        from agent.storages.file import FileStorage
-
-        self.agent.storage = FileStorage(imagedir=ref_images)
+        self.agent = Container(env=Env(DATA_DIR=self.settings.DATA_DIR))
         self._indexing_worker: "IndexingWorker | None" = None
 
     def indexing_worker(self) -> "IndexingWorker":
@@ -75,7 +69,3 @@ class ApiContainer:
             collections=SQLCollectionRepository(session),
             references=SQLReferenceRepository(session),
         )
-
-    @property
-    def references_dir(self) -> Path:
-        return self.settings.DATA_DIR / "references"

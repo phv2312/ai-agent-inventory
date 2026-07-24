@@ -8,7 +8,8 @@ from pymupdf4llm import to_markdown
 from pydantic import BaseModel
 
 from agent.batched import Batched
-from agent.storages.file import FileStorage
+from agent.storages.files.exporter import ReferenceExporter
+from agent.storages.files.interface import IFileStorage
 from agent.textsplitters import (
     ITextSplitter,
     TextSplitterArguments,
@@ -29,7 +30,7 @@ class PDFExtractorSettings(BaseModel):
 class PDFExtractor:
     def __init__(
         self,
-        storage: FileStorage,
+        storage: IFileStorage,
         text_splitter: ITextSplitter,
         settings: PDFExtractorSettings | None = None,
         executor_split_tokens: Executor | None = None,
@@ -46,14 +47,13 @@ class PDFExtractor:
     ) -> Document:
         pages_content: list[str] = []
         pages_imagepath: list[str] = []
+        exporter = ReferenceExporter(fileid)
         with pymupdf.Document(filepath) as document:
             for pageidx, page in enumerate(document, start=1):
                 pages_content.append(to_markdown(document, pages=[pageidx - 1]))
-                relpath = self.storage.gen_path(
-                    reldir=filepath.name, name=f"page{pageidx}"
-                )
-                self.storage.save_image(page.get_pixmap(), relpath)
-                pages_imagepath.append(relpath)
+                image_key = exporter.rendered_page_key(pageidx)
+                self.storage.write_bytes(image_key, page.get_pixmap().tobytes("png"))
+                pages_imagepath.append(image_key)
 
         splitted_texts_list: list[list[str]] = []
         for batched_pages_content in Batched.iter(
@@ -73,8 +73,8 @@ class PDFExtractor:
             )
 
         chunks = []
-        for pageidx, (splitted_texts, imagepath) in enumerate(
-            zip(splitted_texts_list, pages_content), start=1
+        for pageidx, (splitted_texts, image_key) in enumerate(
+            zip(splitted_texts_list, pages_imagepath), start=1
         ):
             chunks.extend(
                 [
@@ -83,7 +83,7 @@ class PDFExtractor:
                         metadata=DocumentMetadata(
                             filename=str(filepath.name),
                             pageidx=pageidx,
-                            rendered_page_path=imagepath,
+                            rendered_page_path=image_key,
                             fileid=fileid,
                         ),
                     )

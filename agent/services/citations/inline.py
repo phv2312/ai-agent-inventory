@@ -1,5 +1,3 @@
-"""Apply inline snippet highlights to retrieved chunks."""
-
 from __future__ import annotations
 
 import html
@@ -14,7 +12,6 @@ def apply_snippet_highlights(
     chunks: list[ScoredChunk],
     mp_chunk_snippets: dict[str, list[str]],
 ) -> list[ScoredChunk]:
-    """Return chunks with kotaemon-style ``<mark>`` highlights applied."""
     if not mp_chunk_snippets:
         return chunks
 
@@ -38,7 +35,6 @@ def apply_snippet_highlights(
 
 
 def render_highlighted_body(text: str) -> str:
-    """Escape plain text while preserving ``<mark>`` highlight tags."""
     parts = re.split(r"(<mark[^>]*>.*?</mark>)", text, flags=re.DOTALL)
     rendered: list[str] = []
     for part in parts:

@@ -70,7 +70,7 @@ Optional API settings (prefix `AGENT_API_`):
 
 | Variable | Default | Description |
 |:---------|:--------|:------------|
-| `AGENT_API_DATA_DIR` | `.agent-api-data` | SQLite DB, uploaded PDFs, and index images |
+| `AGENT_API_DATA_DIR` | `.agent-api-data` | SQLite DB, Milvus Lite DB, uploaded PDFs, and rendered pages |
 | `AGENT_API_DATABASE_URL` | *(SQLite in data dir)* | Override with a custom async SQLAlchemy URL |
 
 ### 3. Run the API

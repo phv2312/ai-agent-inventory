@@ -1,5 +1,3 @@
-"""Fuzzy text matching for inline evidence spans."""
-
 from difflib import SequenceMatcher
 
 from agent.models.document import ScoredChunk
@@ -12,7 +10,6 @@ def find_quote_span(
     min_length: int = 5,
     min_ratio: float = 0.35,
 ) -> tuple[int, int] | None:
-    """Return ``(start, end)`` of the best fuzzy match for *quote* in *text*."""
     if len(quote.strip()) < min_length:
         return None
 
@@ -40,7 +37,6 @@ def find_start_end_phrase(
     min_length: int = 5,
     max_excerpt_length: int = 300,
 ) -> tuple[tuple[int, int] | None, int]:
-    """Return best span and matched length (kotaemon-compatible)."""
     if not start_phrase and not end_phrase:
         return None, 0
 
@@ -82,7 +78,6 @@ def match_entry_to_chunk(
     end_phrase: str | None,
     chunks_by_id: dict[str, ScoredChunk],
 ) -> tuple[str, tuple[int, int]] | None:
-    """Pick chunk with longest phrase match for a citation entry."""
     if not start_phrase and not end_phrase:
         return None
 

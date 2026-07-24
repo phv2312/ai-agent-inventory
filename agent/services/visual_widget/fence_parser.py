@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Protocol
 from collections.abc import Sequence
 
@@ -27,14 +25,17 @@ class ParserState(StrEnum):
 
 class FenceEventType(StrEnum):
     PROSE_DELTA = "prose_delta"
-    OPEN_WIDGET = "open_widget"
     WIDGET_DELTA = "widget_delta"
-    CLOSE_WIDGET = "close_widget"
-    WIDGET_ERROR = "widget_error"
-    OPEN_SNIPPET = "open_snippet"
     SNIPPET_DELTA = "snipet_delta"
-    CLOSE_SNIPPET = "close_snippet"
+
+    OPEN_WIDGET = "open_widget"
+    OPEN_SNIPPET = "open_snippet"
+
+    WIDGET_ERROR = "widget_error"
     SNIPPET_ERROR = "snippet_error"
+
+    CLOSE_WIDGET = "close_widget"
+    CLOSE_SNIPPET = "close_snippet"
 
 
 @dataclass(frozen=True)

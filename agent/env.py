@@ -1,6 +1,11 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class StorageEnv(BaseSettings):
+    DATA_DIR: Path = Path(".agent-api-data")
 
 
 class OpenAISettings(BaseSettings):
@@ -30,9 +35,15 @@ class ContextGenerationSettings(BaseSettings):
     IMAGE_DETAIL: Literal["low", "auto", "high"] = "auto"
 
 
-class MilvusSettings(BaseSettings):
+class MilvusSettings(StorageEnv):
     MILVUS_DB_COLLECTION_NAME: str
-    MILVUS_DB_URI: str
+    MILVUS_DB_URI: Path = Path("milvus.db")
+
+    def resolved_milvus_db_uri(self) -> str:
+        uri = self.MILVUS_DB_URI
+        if uri.is_absolute() or ".." in uri.parts:
+            raise ValueError("MILVUS_DB_URI must be relative to DATA_DIR")
+        return str((self.DATA_DIR / uri).resolve())
 
 
 class AnthropicSettings(BaseSettings):

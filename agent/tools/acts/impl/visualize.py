@@ -18,12 +18,6 @@ class VisualizeReadmeToolCall(BaseToolCall[VisualizeReadmeParameters]):
 
 
 class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
-    """Return design guidelines to the LLM for the requested modules.s
-
-    The LLM calls this silently before inline visualize fences to load
-    CSS variable rules, color palette, and layout examples.
-    """
-
     def __init__(
         self,
         readme_template: Template,
@@ -36,7 +30,6 @@ class VisualizeReadmeAct(IToolAct[VisualizeReadmeToolCall]):
         self,
         tool_call: VisualizeReadmeToolCall,
     ) -> ToolActResult:
-        """Render and return the merged module guidelines."""
         with tool_span(
             tracer,
             "VisualizeReadmeAct.act",
