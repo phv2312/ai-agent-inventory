@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from sse_starlette import ServerSentEvent
 from agents import RawResponsesStreamEvent, RunItemStreamEvent
+from agents.items import ToolCallItem
 
 from agent.deps.container import Container
 from agent.models.content_blocks import (
@@ -24,6 +25,7 @@ from agent.services.chatstream.models import (
     StreamErrorData,
     is_untitled_conversation,
 )
+from agent.services.chatstream.tool_progress import ToolProgressFormatter
 
 
 @dataclass
@@ -81,12 +83,14 @@ class ChatStreamService:
                 if (
                     isinstance(event, RunItemStreamEvent)
                     and event.name == ChatStreamEventNames.TOOL_CALLED
+                    and isinstance(event.item, ToolCallItem)
                 ):
-                    state.reasoning_text += "Tool call started.\n\n"
+                    progress = ToolProgressFormatter.format(event.item)
+                    state.reasoning_text += progress
                     reasoning_payload = [
                         StreamChatItem(
                             idx=reasoning_idx,
-                            content="Tool call started.\n\n",
+                            content=progress,
                         ).model_dump()
                     ]
                     reasoning_idx += 1
