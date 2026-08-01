@@ -21,7 +21,7 @@ from evaluation.protocols import AgentStreamRunner
 
 
 class DefaultAgentStreamRunner:
-    """Capture traces by consuming `agent.stream_async_answer`."""
+    # Capture traces by consuming the streamed agent run.
 
     async def capture(
         self,
@@ -29,7 +29,7 @@ class DefaultAgentStreamRunner:
         *,
         request_id: str,
     ) -> None:
-        """Run one query and consume all stream events."""
+        # Run one query and consume all stream events.
         agentic = container.agentic.get()
         events = await agentic.stream_async_answer(
             query=query.query,

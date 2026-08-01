@@ -2,7 +2,9 @@ import base64
 from collections.abc import Sequence
 from enum import StrEnum, auto
 from pathlib import Path
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, cast
+
+from agents.items import TResponseInputItem
 from uuid import uuid4
 
 from pydantic import BaseModel, BeforeValidator, Discriminator, Field
@@ -129,3 +131,17 @@ class Messages(ListModel[Message]):
 
     def as_list(self) -> list[Message]:
         return self.root
+
+    def as_responses_input(self) -> list[TResponseInputItem]:
+        # Convert already-validated application messages to Responses input.
+        return [
+            cast(
+                TResponseInputItem,
+                {
+                    "role": message.role.value,
+                    "content": str(message.content),
+                },
+            )
+            for message in self.root
+            if isinstance(message, UserMessage | AssistantMessage | SystemMessage)
+        ]

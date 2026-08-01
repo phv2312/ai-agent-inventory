@@ -7,10 +7,9 @@ from agents.models.openai_responses import OpenAIResponsesModel
 from jinja2 import Template
 
 from agent.models.document import DocumentMetadata
-from agent.models.messages import AssistantMessage, UserMessage
+from agent.models.messages import AssistantMessage, Message, Messages, UserMessage
 from agent.prompts.core import PromptsFactory
 from agent.rag.chats.deps import ChatDeps
-from agent.skills.lavish import load_instructions
 from agent.storages.config import AnchorFields
 
 from .tools import build_tools
@@ -24,7 +23,7 @@ class AgenticSettings:
 
 
 class AgenticChatStrategy:
-    """OpenAI Agents SDK implementation of the application RAG agent."""
+    # OpenAI Agents SDK implementation of the application RAG agent.
 
     def __init__(
         self,
@@ -45,7 +44,7 @@ class AgenticChatStrategy:
         )
 
     async def get_doc_names(self, file_ids: list[str]) -> list[str]:
-        """Resolve document names for scoped retrieval instructions."""
+        # Resolve document names for scoped retrieval instructions.
         if not file_ids:
             return []
         chunks = await self.deps.vectordb.retrieve_by_filter(
@@ -67,14 +66,13 @@ class AgenticChatStrategy:
         top_k: int | None = None,
         web_search_enabled: bool = False,
     ) -> RunResultStreaming:
-        """Start one SDK-managed, streamed agent run."""
+        # Start one SDK-managed, streamed agent run.
         doc_names = await self.get_doc_names(file_ids)
         instructions = self.template.render(
             doc_names=";".join(doc_names),
             memory_md_content=memory_md_content,
         )
-        instructions = f"{instructions}\n\n{load_instructions()}"
-        messages = [*(history or []), UserMessage(content=query)]
+        messages: list[Message] = [*(history or []), UserMessage(content=query)]
         agent = Agent(
             name="agentic-rag",
             model=self.model,
@@ -90,12 +88,6 @@ class AgenticChatStrategy:
         )
         return Runner.run_streamed(
             agent,
-            input=[
-                {
-                    "role": message.role.value,
-                    "content": str(message.content),
-                }
-                for message in messages
-            ],
+            input=Messages(root=messages).as_responses_input(),
             max_turns=self.settings.max_turns,
         )

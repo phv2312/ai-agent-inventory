@@ -55,12 +55,13 @@ Apply globally.
 - Use modular design with distinct files for models, services, controllers, and utilities.
 - For separated modules, handle exceptions using a dedicated set of module exceptions, fine-grained to each case.
 
-## Documentation
+## Comments and Documentation
 
 Apply to `**/*.py` and `README.md`.
 
-- Use docstrings to document functions and classes.
-- Keep docstrings to a maximum line length of 79.
+- Use short, consecutive `#` comments for implementation guidance; do not add
+  docstrings for this purpose.
+- Keep comments to a maximum line length of 79.
 - Update README correspondingly if new features are introduced.
 
 ## Unit Testing

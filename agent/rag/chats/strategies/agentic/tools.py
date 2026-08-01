@@ -11,7 +11,7 @@ from agent.storages.vectordb.milvus import Milvus
 
 
 def _format_chunks(chunks: ScoredChunks) -> str:
-    """Format retrieved chunks as model-readable, citation-ready context."""
+    # Format retrieved chunks as model-readable, citation-ready context.
     parts: list[str] = []
     for scored_chunk in chunks.iter():
         metadata = scored_chunk.chunk.metadata.model_dump()
@@ -37,7 +37,7 @@ def build_tools(
     visualization_guidance: str,
     web_search_enabled: bool,
 ) -> list[Tool]:
-    """Build request-scoped OpenAI Agents SDK tools."""
+    # Build request-scoped OpenAI Agents SDK tools.
 
     @function_tool
     async def internal_search_tool(
@@ -51,7 +51,7 @@ def build_tools(
             Field(description="Optional document-name filters"),
         ] = None,
     ) -> str:
-        """Search the internal knowledge base and return citation-ready chunks."""
+        # Search the internal knowledge base and return citation-ready chunks.
         embeddings = await embedding_model.embed([query])
         if not embeddings:
             raise ValueError("Query embedding is empty")
@@ -74,7 +74,7 @@ def build_tools(
             Field(description="Private concise reasoning and retrieval plan"),
         ],
     ) -> str:
-        """Record a concise private reasoning and retrieval plan."""
+        # Record a concise private reasoning and retrieval plan.
         return reflection
 
     @function_tool
@@ -84,7 +84,7 @@ def build_tools(
             Field(description="Visualization modules required for the response"),
         ],
     ) -> str:
-        """Load the application's inline visualization guidance."""
+        # Load the application's inline visualization guidance.
         return visualization_guidance
 
     tools: list[Tool] = [visualize_read_me]

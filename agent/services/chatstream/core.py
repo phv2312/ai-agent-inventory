@@ -13,6 +13,10 @@ from agent.models.content_blocks import (
 )
 from agent.models.messages import AssistantMessage, UserMessage
 from agent.services.chatstream.block_assembler import ContentBlockTransformer
+from agent.services.chatstream.constants import (
+    ChatStreamEventNames,
+    ResponseStreamEventNames,
+)
 from agent.services.chatstream.models import (
     CITATION_INDEX_PATTERN,
     NameSuggestionData,
@@ -67,7 +71,7 @@ class ChatStreamService:
             async for event in events.stream_events():
                 if (
                     isinstance(event, RawResponsesStreamEvent)
-                    and event.data.type == "response.output_text.delta"
+                    and event.data.type == ResponseStreamEventNames.TEXT_DELTA
                 ):
                     content = event.data.delta
                     for content_block in transformer.transform(content):
@@ -76,7 +80,7 @@ class ChatStreamService:
                     continue
                 if (
                     isinstance(event, RunItemStreamEvent)
-                    and event.name == "tool_called"
+                    and event.name == ChatStreamEventNames.TOOL_CALLED
                 ):
                     state.reasoning_text += "Tool call started.\n\n"
                     reasoning_payload = [
