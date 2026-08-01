@@ -3,7 +3,7 @@ from typing import Final
 from jinja2 import Template
 from pydantic import BaseModel, Field
 
-from agent.chats.interface import IChatModel
+from agents.models.openai_responses import OpenAIResponsesModel
 from agent.models.messages import MessageContent, TextContent, UserMessage
 from agent.prompts.core import PromptsFactory
 from agent.programs.base import BaseProgram
@@ -20,14 +20,14 @@ class NameSuggestionProgram(BaseProgram[NameSuggestion]):
 
     def __init__(
         self,
-        chat_model: IChatModel,
+        model: OpenAIResponsesModel,
         model_name: str,
         *,
         max_words: int = DEFAULT_MAX_WORDS,
         default_name: str = DEFAULT_NAME,
         template: Template | None = None,
     ) -> None:
-        super().__init__(chat_model, model_name)
+        super().__init__(model, model_name)
         self.max_words = max_words
         self.default_name = default_name
         self.template = template or PromptsFactory.PROGRAMS.get(

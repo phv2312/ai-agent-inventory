@@ -1,30 +1,31 @@
 from typing import Final
 
+from agents import Agent, Runner
+from agents.models.openai_responses import OpenAIResponsesModel
 from pydantic import BaseModel
 
-from agent.chats.interface import IChatModel
 from agent.models.messages import UserMessage
-from agent.models.streams import ChatRequest
 
 
 class BaseProgram[ModelOutT: BaseModel]:
     ModelOutCls: type[ModelOutT]
     DEFAULT_TEMPERATURE: Final[float] = 0.0
 
-    def __init__(self, chat_model: IChatModel, model_name: str) -> None:
-        self.chat_model = chat_model
+    def __init__(self, model: OpenAIResponsesModel, model_name: str) -> None:
+        self.model = model
         self.model_name = model_name
 
     async def aprocess(
         self,
         message: UserMessage,
     ) -> ModelOutT:
-        request = ChatRequest(
-            model=self.model_name,
-            messages=[message],
-            temperature=self.DEFAULT_TEMPERATURE,
+        agent = Agent(
+            name=self.__class__.__name__,
+            model=self.model,
+            output_type=self.ModelOutCls,
         )
-        return await self.chat_model.parse(
-            request=request,
-            response_format=self.ModelOutCls,
+        result = await Runner.run(
+            agent,
+            input=str(message.content),
         )
+        return result.final_output_as(self.ModelOutCls)

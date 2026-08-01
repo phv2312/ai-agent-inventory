@@ -9,7 +9,6 @@ from agent.models.content_blocks import (
     ContentBlockType,
     WidgetBlockStatus,
 )
-from agent.models.streams import StreamEvent, TextDeltaEvent
 from agent.services.visual_widget.fence_parser import (
     FenceEvent,
     FenceEventType,
@@ -202,10 +201,9 @@ class ContentBlockAssembler:
         default_factory=lambda: ContentBlockTransformer(FenceParser()),
     )
 
-    def handle(self, event: StreamEvent) -> list[ServerSentEvent]:
-        if not isinstance(event, TextDeltaEvent):
-            return []
-        return self.emit(self.transformer.transform(event.content))
+    def handle(self, fragment: str) -> list[ServerSentEvent]:
+        """Transform one text fragment into frontend SSE events."""
+        return self.emit(self.transformer.transform(fragment))
 
     def close_open_blocks(self) -> list[ServerSentEvent]:
         return self.close_open_blocks_with_status(WidgetBlockStatus.COMPLETE)

@@ -131,11 +131,11 @@ run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
 
 | Component | Description | Implementations |
 |:----------|:------------|:----------------|
-| chats | Chat model interfaces for interacting with LLM providers | - OpenAI chat<br>- Anthropic chat |
+| agentic chat | OpenAI Agents SDK runtime for tool-driven RAG | - Azure OpenAI Responses |
 | embeddings | Embedding model implementations for vector representations | - OpenAI embeddings |
 | extractors | Utilities for extracting information from various sources | - PDF Extractor |
 | models | Pydantic data models and schemas used throughout the system | - Message, Provider stream events |
-| rag | Agentic RAG chat strategies with tool-driven retrieval | - AgenticChatStrategy (ReAct + Responses API) |
+| rag | Agentic RAG chat strategies with tool-driven retrieval | - AgenticChatStrategy (OpenAI Agents SDK) |
 | programs | LLM programs that generate structured data using Pydantic models | - Base program framework |
 | prompts | Templates and configurations for LLM chat prompts | - Agentic prompts |
 | storages | Storage implementations including vector database integrations | - Local storage<br>- Milvus |

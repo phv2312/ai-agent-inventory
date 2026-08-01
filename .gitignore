@@ -38,3 +38,4 @@ evaluation/runs/*
 .coverage
 htmlcov/
 .mypy_cache/
+.lavish/

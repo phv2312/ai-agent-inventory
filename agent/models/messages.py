@@ -3,16 +3,13 @@ from collections.abc import Sequence
 from enum import StrEnum, auto
 from pathlib import Path
 from typing import Annotated, Literal, Self, cast
+
+from agents.items import TResponseInputItem
 from uuid import uuid4
 
 from pydantic import BaseModel, BeforeValidator, Discriminator, Field
 
 from agent.typedefs import ListModel
-from openai.types.chat import ChatCompletionMessageParam
-from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
-from openai.types.chat.chat_completion_message_tool_call import (
-    ChatCompletionMessageToolCall,
-)
 
 
 def encode_image_base64(imagepath: Path) -> str:
@@ -79,7 +76,6 @@ class UserMessage(BaseMessage):
 
 class AssistantMessage(BaseMessage):
     role: Literal[MessageRole.assistant] = MessageRole.assistant
-    tool_calls: list[ChatCompletionMessageToolCall | ChoiceDeltaToolCall] | None = None
 
     @classmethod
     def from_content(
@@ -136,7 +132,16 @@ class Messages(ListModel[Message]):
     def as_list(self) -> list[Message]:
         return self.root
 
-    def as_openai_list(self) -> list[ChatCompletionMessageParam]:
+    def as_responses_input(self) -> list[TResponseInputItem]:
+        # Convert already-validated application messages to Responses input.
         return [
-            cast(ChatCompletionMessageParam, msg.model_dump()) for msg in self.as_list()
+            cast(
+                TResponseInputItem,
+                {
+                    "role": message.role.value,
+                    "content": str(message.content),
+                },
+            )
+            for message in self.root
+            if isinstance(message, UserMessage | AssistantMessage | SystemMessage)
         ]

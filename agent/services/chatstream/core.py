@@ -3,6 +3,8 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 
 from sse_starlette import ServerSentEvent
+from agents import RawResponsesStreamEvent, RunItemStreamEvent
+from agents.items import ToolCallItem
 
 from agent.deps.container import Container
 from agent.models.content_blocks import (
@@ -11,15 +13,11 @@ from agent.models.content_blocks import (
     PersistedContentBlock,
 )
 from agent.models.messages import AssistantMessage, UserMessage
-from agent.models.streams import (
-    ErrorEvent,
-    FunctionCallProgressEvent,
-    StreamEvent,
-    TextDeltaEvent,
-    ThinkingDeltaEvent,
-    WebSearchToolDefinition,
-)
 from agent.services.chatstream.block_assembler import ContentBlockTransformer
+from agent.services.chatstream.constants import (
+    ChatStreamEventNames,
+    ResponseStreamEventNames,
+)
 from agent.services.chatstream.models import (
     CITATION_INDEX_PATTERN,
     NameSuggestionData,
@@ -27,7 +25,7 @@ from agent.services.chatstream.models import (
     StreamErrorData,
     is_untitled_conversation,
 )
-from agent.tools.schemas.registry import ToolSchemaRegistry
+from agent.services.chatstream.tool_progress import ToolProgressFormatter
 
 
 @dataclass
@@ -53,7 +51,6 @@ class ChatStreamService:
         file_ids: list[str],
         history: list[UserMessage | AssistantMessage],
         top_k: int,
-        model_name: str,
         web_search_enabled: bool,
         system_prompt: str | None = None,
         request_id: str | None = None,
@@ -62,42 +59,52 @@ class ChatStreamService:
         transformer = ContentBlockTransformer()
         strategy = self.agent_container.agentic.get()
 
-        tool_defs = ToolSchemaRegistry.agentic_tools(
-            internal_search=len(file_ids) > 0,
-        )
-        if web_search_enabled:
-            tool_defs = [*tool_defs, WebSearchToolDefinition()]
-
         reasoning_idx = 0
         content_block_events: list[ContentBlock] = []
         try:
-            async for event in strategy.stream_async_answer(
+            events = await strategy.stream_async_answer(
                 query=message,
                 file_ids=file_ids,
                 history=history,
                 top_k=top_k,
-                model_name=model_name,
-                tools=tool_defs,
                 memory_md_content=system_prompt or "",
-                request_id=request_id,
-            ):
-                if isinstance(event, TextDeltaEvent):
-                    for content_block in transformer.transform(event.content):
+                web_search_enabled=web_search_enabled,
+            )
+            async for event in events.stream_events():
+                if (
+                    isinstance(event, RawResponsesStreamEvent)
+                    and event.data.type == ResponseStreamEventNames.TEXT_DELTA
+                ):
+                    content = event.data.delta
+                    for content_block in transformer.transform(content):
                         content_block_events.append(content_block)
                         yield content_block.to_sse()
                     continue
-
-                sse = self.map_event(event, reasoning_idx, state)
-                if isinstance(event, (ThinkingDeltaEvent, FunctionCallProgressEvent)):
+                if (
+                    isinstance(event, RunItemStreamEvent)
+                    and event.name == ChatStreamEventNames.TOOL_CALLED
+                    and isinstance(event.item, ToolCallItem)
+                ):
+                    progress = ToolProgressFormatter.format(event.item)
+                    state.reasoning_text += progress
+                    reasoning_payload = [
+                        StreamChatItem(
+                            idx=reasoning_idx,
+                            content=progress,
+                        ).model_dump()
+                    ]
                     reasoning_idx += 1
-                if isinstance(event, ErrorEvent):
-                    state.had_error = True
-                if sse is not None:
-                    yield sse
+                    yield ServerSentEvent(
+                        event="reasoning",
+                        data=json.dumps(reasoning_payload),
+                    )
         except Exception as exc:
             state.had_error = True
-            payload = StreamErrorData(code="InternalAIServiceError", message=str(exc))
-            yield ServerSentEvent(event="error", data=payload.model_dump_json())
+            error_payload = StreamErrorData(
+                code="InternalAIServiceError",
+                message=str(exc),
+            )
+            yield ServerSentEvent(event="error", data=error_payload.model_dump_json())
         finally:
             state.completed = not state.had_error
             for content_block in transformer.finalize():
@@ -115,32 +122,6 @@ class ChatStreamService:
             )
 
         self.last_state = state
-
-    def map_event(
-        self,
-        event: StreamEvent,
-        reasoning_idx: int,
-        state: ChatStreamState,
-    ) -> ServerSentEvent | None:
-        if isinstance(event, ThinkingDeltaEvent):
-            state.reasoning_text += event.content
-            payload = [
-                StreamChatItem(idx=reasoning_idx, content=event.content).model_dump()
-            ]
-            return ServerSentEvent(event="reasoning", data=json.dumps(payload))
-        if isinstance(event, FunctionCallProgressEvent):
-            state.reasoning_text += event.delta
-            payload = [
-                StreamChatItem(idx=reasoning_idx, content=event.delta).model_dump()
-            ]
-            return ServerSentEvent(event="reasoning", data=json.dumps(payload))
-        if isinstance(event, ErrorEvent):
-            error_payload = StreamErrorData(code=event.code, message=event.message)
-            return ServerSentEvent(
-                event="error",
-                data=error_payload.model_dump_json(),
-            )
-        return None
 
     @staticmethod
     def build_mapping_evidence(

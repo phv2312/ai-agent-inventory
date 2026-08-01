@@ -16,6 +16,7 @@ class OpenAISettings(BaseSettings):
     OPENAI_API_KEY: str
     OPENAI_AZURE_ENDPOINT: str
     OPENAI_API_VERSION: str
+    OPENAI_AGENTS_DISABLE_TRACING: Literal[0, 1] = 1
 
 
 class OpenAIChatSettings(OpenAISettings):
@@ -46,14 +47,6 @@ class MilvusSettings(StorageEnv):
         return str((self.DATA_DIR / uri).resolve())
 
 
-class AnthropicSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        case_sensitive=False,
-    )
-
-    ANTHROPIC_API_KEY: str = ""
-
-
 class PhoenixSettings(BaseSettings):
     PHOENIX_TRACING_ENABLED: bool = False
     PHOENIX_PROJECT_NAME: str = "agent-demo"
@@ -66,7 +59,6 @@ class Env(
     OpenAIChatSettings,
     OpenAIEmbeddingSettings,
     MilvusSettings,
-    AnthropicSettings,
     PhoenixSettings,
     BaseSettings,
 ):
