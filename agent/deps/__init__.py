@@ -4,7 +4,6 @@ from .models import (
     TextSplitterModel,
     ExtractorModel,
     VectorDBModel,
-    ChatModel,
 )
 
 __all__ = [
@@ -14,5 +13,4 @@ __all__ = [
     "TextSplitterModel",
     "ExtractorModel",
     "VectorDBModel",
-    "ChatModel",
 ]

@@ -17,10 +17,5 @@ class VectorDBModel(StrEnum):
     MILVUS = auto()
 
 
-class ChatModel(StrEnum):
-    AZURE_OPENAI = auto()
-    ANTHROPIC = auto()
-
-
 class ProgramsModel(StrEnum):
     NAME_SUGGESTION = auto()

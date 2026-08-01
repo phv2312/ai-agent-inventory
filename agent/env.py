@@ -46,14 +46,6 @@ class MilvusSettings(StorageEnv):
         return str((self.DATA_DIR / uri).resolve())
 
 
-class AnthropicSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        case_sensitive=False,
-    )
-
-    ANTHROPIC_API_KEY: str = ""
-
-
 class PhoenixSettings(BaseSettings):
     PHOENIX_TRACING_ENABLED: bool = False
     PHOENIX_PROJECT_NAME: str = "agent-demo"
@@ -66,7 +58,6 @@ class Env(
     OpenAIChatSettings,
     OpenAIEmbeddingSettings,
     MilvusSettings,
-    AnthropicSettings,
     PhoenixSettings,
     BaseSettings,
 ):

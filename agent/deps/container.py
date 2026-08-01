@@ -2,20 +2,17 @@ from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
 from typing import Any, Callable
 
+from agents.models.openai_responses import OpenAIResponsesModel
 from agent.programs import BaseProgram, NameSuggestionProgram
 from agent.textsplitters import (
     ITextSplitter,
     LangchainTextSplitter,
 )
-from anthropic import AsyncAnthropic
 from openai import AsyncAzureOpenAI
 
-from agent.chats import IChatModel
-from agent.chats.impl.anthropic import AnthropicProvider
-from agent.chats.impl.openai import OpenAIProvider
 from agent.rag.chats.deps import ChatDeps
 from agent.rag.chats.strategies.agentic import AgenticChatStrategy
-from agent.rag.chats.strategies.agentic.v1.core import AgenticSettings
+from agent.rag.chats.strategies.agentic.core import AgenticSettings
 from agent.embeddings import IEmbeddingModel, SmallOpenAIEmbeddingModel
 from agent.extractors import (
     IExtractor,
@@ -32,7 +29,6 @@ from .models import (
     TextSplitterModel,
     ExtractorModel,
     VectorDBModel,
-    ChatModel,
 )
 
 type MPReturn[NameT, ReturnT] = dict[NameT, Callable[[], ReturnT]]
@@ -78,9 +74,9 @@ class EmbeddingProvider(BaseProvider[EmbeddingModel, IEmbeddingModel]):
 
 
 class ProgramsProvider(BaseProvider[ProgramsModel, BaseProgram[Any]]):
-    def __init__(self, env: Env, chat_provider: "ChatProvider") -> None:
+    def __init__(self, env: Env, model: OpenAIResponsesModel) -> None:
         self.env = env
-        self.chat_provider = chat_provider
+        self.model = model
 
     @property
     def mp_name_init(self) -> MPReturn[ProgramsModel, BaseProgram[Any]]:
@@ -91,7 +87,7 @@ class ProgramsProvider(BaseProvider[ProgramsModel, BaseProgram[Any]]):
     @lru_cache(maxsize=1)
     def init_name_suggestion(self) -> NameSuggestionProgram:
         return NameSuggestionProgram(
-            chat_model=self.chat_provider.get(ChatModel.AZURE_OPENAI),
+            model=self.model,
             model_name=self.env.OPENAI_CHAT_DEPLOYMENT_NAME,
         )
 
@@ -171,50 +167,18 @@ class VectorDBProvider(
         )
 
 
-class ChatProvider(
-    BaseProvider[ChatModel, IChatModel],
-):
-    def __init__(self, env: Env) -> None:
-        self.env = env
-
-    @property
-    def mp_name_init(
-        self,
-    ) -> MPReturn[ChatModel, IChatModel]:
-        return {
-            ChatModel.AZURE_OPENAI: self.init_azure_openai,
-            ChatModel.ANTHROPIC: self.init_anthropic,
-        }
-
-    @lru_cache(maxsize=1)
-    def init_azure_openai(self) -> OpenAIProvider:
-        client = AsyncAzureOpenAI(
-            api_key=self.env.OPENAI_API_KEY,
-            api_version=self.env.OPENAI_API_VERSION,
-            azure_endpoint=self.env.OPENAI_AZURE_ENDPOINT,
-        )
-        return OpenAIProvider(client)
-
-    @lru_cache(maxsize=1)
-    def init_anthropic(self) -> AnthropicProvider:
-        client = AsyncAnthropic(
-            api_key=self.env.ANTHROPIC_API_KEY,
-        )
-        return AnthropicProvider(client)
-
-
 class AgenticStrategyProvider:
     def __init__(
         self,
         env: Env,
         vectordb_provider: VectorDBProvider,
         embedding_provider: EmbeddingProvider,
-        chat_provider: ChatProvider,
+        model: OpenAIResponsesModel,
     ) -> None:
         self.env = env
         self.vectordb_provider = vectordb_provider
         self.embedding_provider = embedding_provider
-        self.chat_provider = chat_provider
+        self.model = model
 
     def get(self) -> AgenticChatStrategy:
         return AgenticChatStrategy(
@@ -223,8 +187,8 @@ class AgenticStrategyProvider:
                 embedding_model=self.embedding_provider.get(
                     EmbeddingModel.AZURE_OPENAI
                 ),
-                stream_provider=self.chat_provider.get(ChatModel.AZURE_OPENAI),
             ),
+            model=self.model,
             settings=AgenticSettings(
                 model_name=self.env.OPENAI_CHAT_DEPLOYMENT_NAME,
             ),
@@ -259,8 +223,16 @@ class Container:
         return TextSplitterProvider(self.env)
 
     @cached_property
-    def chats(self) -> ChatProvider:
-        return ChatProvider(self.env)
+    def model(self) -> OpenAIResponsesModel:
+        client = AsyncAzureOpenAI(
+            api_key=self.env.OPENAI_API_KEY,
+            api_version=self.env.OPENAI_API_VERSION,
+            azure_endpoint=self.env.OPENAI_AZURE_ENDPOINT,
+        )
+        return OpenAIResponsesModel(
+            model=self.env.OPENAI_CHAT_DEPLOYMENT_NAME,
+            openai_client=client,
+        )
 
     @cached_property
     def agentic(self) -> AgenticStrategyProvider:
@@ -268,12 +240,12 @@ class Container:
             self.env,
             self.vectordbs,
             self.embeddings,
-            self.chats,
+            self.model,
         )
 
     @cached_property
     def programs(self) -> ProgramsProvider:
-        return ProgramsProvider(self.env, self.chats)
+        return ProgramsProvider(self.env, self.model)
 
 
 container = Container()

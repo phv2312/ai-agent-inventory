@@ -1,4 +1,4 @@
-from .v1.core import AgenticChatStrategy
+from .core import AgenticChatStrategy
 
 __all__ = [
     "AgenticChatStrategy",

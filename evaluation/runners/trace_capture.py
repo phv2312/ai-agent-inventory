@@ -6,7 +6,6 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from agent.deps.container import container
-from agent.models.streams import ErrorEvent
 from agent.tracer import new_request_id
 
 from evaluation.exceptions import TraceCaptureError
@@ -32,15 +31,12 @@ class DefaultAgentStreamRunner:
     ) -> None:
         """Run one query and consume all stream events."""
         agentic = container.agentic.get()
-        stream = agentic.stream_async_answer(
+        events = await agentic.stream_async_answer(
             query=query.query,
             file_ids=[],
-            request_id=request_id,
         )
-        async for event in stream:
-            if isinstance(event, ErrorEvent):
-                msg = f"{event.code}: {event.message}"
-                raise TraceCaptureError(msg)
+        async for _event in events.stream_events():
+            pass
 
 
 async def capture_dataset_traces(

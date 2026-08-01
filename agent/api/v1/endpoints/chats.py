@@ -104,7 +104,6 @@ async def chat(
         await session.commit()
 
     chat_service = ChatStreamService(container.agent)
-    model_name = container.agent.env.OPENAI_CHAT_DEPLOYMENT_NAME
 
     async def event_generator() -> AsyncGenerator[ServerSentEvent, None]:
         async for event in chat_service.stream(
@@ -112,7 +111,6 @@ async def chat(
             file_ids=file_ids,
             history=history,
             top_k=top_k,
-            model_name=model_name,
             web_search_enabled=web_search_enabled,
             system_prompt=system_prompt,
             # keep track of user-message id for easier to trace the response
