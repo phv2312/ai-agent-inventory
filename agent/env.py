@@ -16,6 +16,7 @@ class OpenAISettings(BaseSettings):
     OPENAI_API_KEY: str
     OPENAI_AZURE_ENDPOINT: str
     OPENAI_API_VERSION: str
+    OPENAI_AGENTS_DISABLE_TRACING: Literal[0, 1] = 1
 
 
 class OpenAIChatSettings(OpenAISettings):

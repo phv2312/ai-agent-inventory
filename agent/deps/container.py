@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
 from typing import Any, Callable
 
+from agents import set_tracing_disabled
 from agents.models.openai_responses import OpenAIResponsesModel
 from agent.programs import BaseProgram, NameSuggestionProgram
 from agent.textsplitters import (
@@ -200,6 +201,7 @@ class Container:
         self, env: Env | None = None, storage: IFileStorage | None = None
     ) -> None:
         self.env = env or Env()
+        set_tracing_disabled(bool(self.env.OPENAI_AGENTS_DISABLE_TRACING))
         self.storage = storage or LocalFileStorage(self.env.DATA_DIR)
 
     @cached_property

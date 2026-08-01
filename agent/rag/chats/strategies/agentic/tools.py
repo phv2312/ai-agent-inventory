@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Annotated
+from typing import Annotated, Literal
 
 from agents import Tool, WebSearchTool, function_tool
 from pydantic import Field
@@ -8,6 +8,14 @@ from agent.embeddings.interface import IEmbeddingModel
 from agent.models.document import ScoredChunks
 from agent.storages.config import AnchorFields
 from agent.storages.vectordb.milvus import Milvus
+
+type VisualizeModule = Literal[
+    "interactive",
+    "chart",
+    "diagram",
+    "mockup",
+    "art",
+]
 
 
 def _format_chunks(chunks: ScoredChunks) -> str:
@@ -34,7 +42,8 @@ def build_tools(
     embedding_model: IEmbeddingModel,
     file_ids: list[str],
     top_k: int,
-    visualization_guidance: str,
+    visualization_guidance: dict[VisualizeModule, str],
+    visualization_readme: str,
     web_search_enabled: bool,
 ) -> list[Tool]:
     # Build request-scoped OpenAI Agents SDK tools.
@@ -80,12 +89,15 @@ def build_tools(
     @function_tool
     async def visualize_read_me(
         modules: Annotated[
-            list[str],
+            list[VisualizeModule],
             Field(description="Visualization modules required for the response"),
         ],
     ) -> str:
-        # Load the application's inline visualization guidance.
-        return visualization_guidance
+        # Load only the application's requested inline visualization guidance.
+        merged_guidance = "\n\n---\n\n".join(
+            visualization_guidance[module] for module in modules
+        )
+        return visualization_readme.replace("{vis_templates}", merged_guidance)
 
     tools: list[Tool] = [visualize_read_me]
     if file_ids:

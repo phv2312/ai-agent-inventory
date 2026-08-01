@@ -12,7 +12,15 @@ from agent.prompts.core import PromptsFactory
 from agent.rag.chats.deps import ChatDeps
 from agent.storages.config import AnchorFields
 
-from .tools import build_tools
+from .tools import VisualizeModule, build_tools
+
+VISUALIZE_MODULES: tuple[VisualizeModule, ...] = (
+    "interactive",
+    "chart",
+    "diagram",
+    "mockup",
+    "art",
+)
 
 
 @dataclass
@@ -38,9 +46,16 @@ class AgenticChatStrategy:
         self.template = template or PromptsFactory.AGENTIC.get("agent2")
 
     @cached_property
-    def visualization_guidance(self) -> str:
+    def visualization_guidance(self) -> dict[VisualizeModule, str]:
+        return {
+            module: PromptsFactory.VISUALIZATION.get(module).render()
+            for module in VISUALIZE_MODULES
+        }
+
+    @cached_property
+    def visualization_readme(self) -> str:
         return PromptsFactory.TOOLS.get("visualize_readme").render(
-            vis_templates="",
+            vis_templates="{vis_templates}",
         )
 
     async def get_doc_names(self, file_ids: list[str]) -> list[str]:
@@ -83,6 +98,7 @@ class AgenticChatStrategy:
                 file_ids=file_ids,
                 top_k=top_k or self.settings.top_k,
                 visualization_guidance=self.visualization_guidance,
+                visualization_readme=self.visualization_readme,
                 web_search_enabled=web_search_enabled,
             ),
         )
