@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "e2e:smoke": "node scripts/e2e_smoke.mjs",
     "build:widget-runtime": "vite build --config vite.widget-runtime.config.ts",
     "prebuild": "npm run build:widget-runtime",
     "build": "tsc -b && vite build",
@@ -44,6 +45,7 @@
     "jscpd": "^5.0.11",
     "jsdom": "^29.1.1",
     "knip": "^6.18.0",
+    "playwright": "^1.52.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",

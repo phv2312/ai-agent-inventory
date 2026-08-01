@@ -62,9 +62,8 @@ set -a && source .env && set +a   # macOS / Linux
 ```
 
 Phoenix tracing is off by default, so local API runs do not need a Phoenix
-server. Set `PHOENIX_TRACING_ENABLED=true` to export traces; `scripts/run.sh`
-then starts Phoenix alongside the API and frontend. Trace-backed evaluation
-also requires this setting.
+server. Set `PHOENIX_TRACING_ENABLED=true` to export traces to an already
+running Phoenix instance. Trace-backed evaluation also requires this setting.
 
 Optional API settings (prefix `AGENT_API_`):
 
@@ -76,7 +75,7 @@ Optional API settings (prefix `AGENT_API_`):
 ### 3. Run the API
 
 ```bash
-uvicorn agent.api.main:app --reload --port 8080
+bash scripts/run.sh --api-only
 ```
 
 - API: http://localhost:8080
@@ -87,8 +86,7 @@ See [agent/api/docs/integration-guide.md](agent/api/docs/integration-guide.md) f
 ### 4. Frontend (chat UI)
 
 ```bash
-cd frontend
-npm install
+npm install --prefix frontend
 ```
 
 Create `frontend/.env`. Leave `VITE_API_BASE_URL` empty to use the Vite dev
@@ -99,7 +97,7 @@ VITE_API_BASE_URL=
 ```
 
 ```bash
-npm run dev
+bash scripts/run.sh
 ```
 
 Open http://localhost:5173
@@ -124,6 +122,30 @@ capture, metric evaluation, and visualization artifact extraction.
 
 See [evaluation/README.md](evaluation/README.md) for commands. Latest run:
 run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
+
+### 7. Platform smoke test
+
+The smoke test launches a fresh API data directory, uploads a real GraphRAG
+PDF, waits for indexing, then checks web search, document retrieval, and the
+visualization tool through the SSE API.
+
+```bash
+uv run python scripts/e2e_smoke.py \
+  --pdf /Users/phamhoaivan/Desktop/papers/rag/GraphRAG.pdf
+```
+
+Add `--with-ui` to run the small Playwright journey as well: create a
+collection in the UI, upload the same PDF, wait for indexing, select it for a
+new conversation, and receive a grounded response. Install Chromium once
+before the UI run:
+
+```bash
+cd frontend && npx playwright install chromium
+```
+
+The runner retains logs and SSE transcripts when it fails. Pass
+`--keep-artifacts` to preserve them after a successful run too. It never uses
+or deletes your normal `.agent-api-data` directory.
 
 ---
 
