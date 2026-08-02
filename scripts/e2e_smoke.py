@@ -4,16 +4,14 @@ import argparse
 import asyncio
 import json
 import os
-import shutil
-import socket
-import subprocess
 import sys
-import tempfile
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -105,13 +103,23 @@ class StreamResult:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the isolated platform smoke suite."
+        description="Run the platform smoke suite against running endpoints."
     )
     parser.add_argument(
         "--pdf",
         type=Path,
         default=Path(os.environ.get("E2E_PDF_PATH", DEFAULT_PDF_PATH)),
         help="Path to the GraphRAG PDF used for document ingestion.",
+    )
+    parser.add_argument(
+        "--api-url",
+        default=os.environ.get("E2E_API_URL"),
+        help="Running API base URL, for example http://127.0.0.1:8080.",
+    )
+    parser.add_argument(
+        "--frontend-url",
+        default=os.environ.get("E2E_FRONTEND_URL"),
+        help="Running frontend URL required by --with-ui.",
     )
     parser.add_argument(
         "--with-ui",
@@ -125,17 +133,22 @@ def parse_args() -> argparse.Namespace:
         help="Path to the JSON smoke-case definition file.",
     )
     parser.add_argument(
-        "--keep-artifacts",
-        action="store_true",
-        help="Keep the temporary data and logs after a successful run.",
+        "--artifacts-dir",
+        type=Path,
+        default=Path(os.environ.get("E2E_ARTIFACTS_DIR", ".e2e-artifacts")),
+        help="Directory where SSE transcripts are retained.",
     )
     return parser.parse_args()
 
 
-def reserve_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        return int(sock.getsockname()[1])
+def require_url(url: str | None, name: str) -> str:
+    if not url:
+        raise ValueError(f"{name} is required")
+    normalized = url.rstrip("/")
+    parsed = urlparse(normalized)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(f"{name} must be an absolute HTTP(S) URL: {url}")
+    return normalized
 
 
 def require_pdf(pdf_path: Path) -> Path:
@@ -165,6 +178,13 @@ def load_cases(cases_path: Path) -> tuple[SmokeCase, ...]:
     if len(case_names) != len(set(case_names)):
         raise ValueError("Smoke case names must be unique")
     return cases
+
+
+def create_artifacts_dir(parent_dir: Path) -> Path:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    artifacts_dir = parent_dir.expanduser().resolve() / timestamp
+    artifacts_dir.mkdir(parents=True, exist_ok=False)
+    return artifacts_dir
 
 
 async def wait_for_api(client: httpx.AsyncClient, base_url: str) -> None:
@@ -363,54 +383,25 @@ async def run_ui_smoke(frontend_url: str, base_url: str, pdf_path: Path) -> None
 async def run(args: argparse.Namespace) -> None:
     pdf_path = require_pdf(args.pdf)
     cases = load_cases(args.cases)
-    api_port = reserve_port()
-    frontend_port = reserve_port()
-    temp_root = Path(tempfile.mkdtemp(prefix="ai-agent-inventory-e2e-"))
-    data_dir = temp_root / "data"
-    artifacts_dir = temp_root / "artifacts"
-    artifacts_dir.mkdir()
-    log_path = artifacts_dir / "platform.log"
-    launch_env = os.environ | {
-        "AGENT_API_PORT": str(api_port),
-        "FRONTEND_PORT": str(frontend_port),
-        "AGENT_API_DATA_DIR": str(data_dir),
-        "OPENAI_AGENTS_DISABLE_TRACING": "1",
-        "PHOENIX_TRACING_ENABLED": "false",
-    }
-    command = ["bash", "scripts/run.sh"]
-    if not args.with_ui:
-        command.append("--api-only")
-
+    api_url = require_url(args.api_url, "--api-url or E2E_API_URL")
+    frontend_url = None
+    if args.with_ui:
+        frontend_url = require_url(
+            args.frontend_url,
+            "--frontend-url or E2E_FRONTEND_URL when --with-ui is set",
+        )
+    artifacts_dir = create_artifacts_dir(args.artifacts_dir)
     try:
-        with log_path.open("w", encoding="utf-8") as log_file:
-            process = await asyncio.create_subprocess_exec(
-                *command,
-                cwd=ROOT_DIR,
-                env=launch_env,
-                stdout=log_file,
-                stderr=subprocess.STDOUT,
-            )
-            try:
-                api_url = f"http://127.0.0.1:{api_port}"
-                await run_api_smoke(api_url, pdf_path, cases, artifacts_dir)
-                if args.with_ui:
-                    frontend_url = f"http://127.0.0.1:{frontend_port}"
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        await wait_for_frontend(client, frontend_url)
-                    await run_ui_smoke(frontend_url, api_url, pdf_path)
-            finally:
-                if process.returncode is None:
-                    process.terminate()
-                    await process.wait()
+        await run_api_smoke(api_url, pdf_path, cases, artifacts_dir)
+        if frontend_url:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await wait_for_frontend(client, frontend_url)
+            await run_ui_smoke(frontend_url, api_url, pdf_path)
     except Exception:
-        print(f"Artifacts retained at {temp_root}", file=sys.stderr)
+        print(f"SSE transcripts retained at {artifacts_dir}", file=sys.stderr)
         raise
 
-    if args.keep_artifacts:
-        print(f"Smoke run passed. Artifacts kept at {temp_root}")
-        return
-    shutil.rmtree(temp_root)
-    print("Platform smoke test passed.")
+    print(f"Platform smoke test passed. SSE transcripts: {artifacts_dir}")
 
 
 def main() -> None:

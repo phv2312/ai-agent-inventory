@@ -19,6 +19,7 @@ frontend/dist/
 .env.*
 *.db
 .agent-api-data/
+.e2e-artifacts/
 evaluation/traces/*
 !evaluation/traces/.gitkeep
 evaluation/artifacts/*

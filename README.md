@@ -125,12 +125,13 @@ run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
 
 ### 7. Platform smoke test
 
-The smoke test launches a fresh API data directory, uploads a real GraphRAG
-PDF, waits for indexing, then checks web search, document retrieval, and the
-visualization tool through the SSE API.
+Start the API and, optionally, frontend yourself. The smoke test never starts,
+stops, or configures either server: it uploads a real GraphRAG PDF to the API
+URL you provide, waits for indexing, then checks web search, document retrieval,
+and the visualization tool through SSE.
 
 ```bash
-uv run python scripts/e2e_smoke.py
+uv run python scripts/e2e_smoke.py --api-url http://127.0.0.1:8080
 ```
 
 The committed fixtures are `assets/fixtures/GraphRAG.pdf` and
@@ -139,16 +140,25 @@ The committed fixtures are `assets/fixtures/GraphRAG.pdf` and
 
 Add `--with-ui` to run the small Playwright journey as well: create a
 collection in the UI, upload the same PDF, wait for indexing, select it for a
-new conversation, and receive a grounded response. Install Chromium once
-before the UI run:
+new conversation, and receive a grounded response. It supports remote services
+too:
+
+```bash
+uv run python scripts/e2e_smoke.py \
+  --api-url https://api.example.com \
+  --frontend-url https://app.example.com \
+  --with-ui
+```
+
+Alternatively, set `E2E_API_URL` and `E2E_FRONTEND_URL`. Install Chromium once
+before a UI run:
 
 ```bash
 cd frontend && npx playwright install chromium
 ```
 
-The runner retains logs and SSE transcripts when it fails. Pass
-`--keep-artifacts` to preserve them after a successful run too. It never uses
-or deletes your normal `.agent-api-data` directory.
+SSE transcripts are retained under `.e2e-artifacts/` for every run (or set
+`--artifacts-dir` / `E2E_ARTIFACTS_DIR`).
 
 ---
 
