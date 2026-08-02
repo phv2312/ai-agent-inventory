@@ -130,9 +130,11 @@ PDF, waits for indexing, then checks web search, document retrieval, and the
 visualization tool through the SSE API.
 
 ```bash
-uv run python scripts/e2e_smoke.py \
-  --pdf /Users/phamhoaivan/Desktop/papers/rag/GraphRAG.pdf
+uv run python scripts/e2e_smoke.py
 ```
+
+The committed fixture is `assets/fixtures/GraphRAG.pdf`. Pass `--pdf` or set
+`E2E_PDF_PATH` to run the same checks against another PDF.
 
 Add `--with-ui` to run the small Playwright journey as well: create a
 collection in the UI, upload the same PDF, wait for indexing, select it for a

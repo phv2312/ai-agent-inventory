@@ -18,7 +18,7 @@ from typing import Any
 import httpx
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_PDF_PATH = Path("/Users/phamhoaivan/Desktop/papers/rag/GraphRAG.pdf")
+DEFAULT_PDF_PATH = ROOT_DIR / "assets" / "fixtures" / "GraphRAG.pdf"
 READINESS_TIMEOUT_SECONDS = 45
 INDEXING_TIMEOUT_SECONDS = 180
 CHAT_TIMEOUT_SECONDS = 180
