@@ -1,11 +1,5 @@
 # Repository Agent Instructions
 
-## Current Context
-
-- Treat the current repository structure and README as the source of truth.
-- Read a `specs/` plan only when it exists and is relevant to the requested
-  work; do not assume an absent historical plan is required.
-
 ## General Python Practices
 
 Apply to `**/*.py`.
@@ -18,6 +12,7 @@ Apply to `**/*.py`.
 - Prefer `pathlib` to `os.path`.
 - Do not use `getattr`; prefer explicit attributes, typed fields, or direct access.
 - Do not add `from __future__ import annotations` unless required, for example recursive types that cannot use quoted forward refs. Quoted forward references such as `"ClassA"` are fine.
+- Avoid hard-coded literals when they represent stable behavior, protocol values, routes, filenames, environment keys, limits, or reusable defaults. Prefer named constants on the owning class or module over repeated literals.
 
 ## Advanced Python Practices
 
@@ -53,35 +48,6 @@ Apply globally.
 - Use modular design with distinct files for models, services, controllers, and utilities.
 - For separated modules, handle exceptions using a dedicated set of module exceptions, fine-grained to each case.
 
-## Configuration and External Boundaries
-
-Apply to scripts and services that call external endpoints.
-
-- Use a focused `pydantic_settings.BaseSettings` class for environment-driven
-  inputs; use uppercase field names that map directly to environment variables.
-- Put stable module or protocol constants on classes as `ClassVar` values.
-- Represent API routes through a small endpoint value object rather than
-  assembling URL strings throughout the workflow.
-- Keep lifecycle ownership explicit: a caller-owned service must not be started,
-  stopped, or reconfigured by a client-side smoke script.
-- Use `structlog` with stable, namespaced event names for operational progress;
-  do not use `print` for normal workflow logging.
-
-## Smoke Test Scripts
-
-Apply to `scripts/smoke/`.
-
-- Keep each smoke-test concern in its own module: models, fixture utilities,
-  and the backend workflow.
-- Keep fixture documents and JSON case definitions under
-  `scripts/smoke/fixtures/`; load cases from JSON rather than hard-coding them
-  in Python.
-- Treat the target API as an external, already-running dependency. Support local
-  and remote URLs through settings, but do not manage server processes.
-- Use an async context manager to own the HTTP client and fail if a workflow
-  attempts to reuse an already-active client.
-- Preserve per-case SSE transcripts as artifacts and log the artifact path on
-  success or failure.
 
 ## Comments and Documentation
 
@@ -91,29 +57,3 @@ Apply to `**/*.py` and `README.md`.
   docstrings for this purpose.
 - Keep comments to a maximum line length of 79.
 - Update README correspondingly if new features are introduced.
-
-## Unit Testing
-
-Apply to `**/tests/**/*`.
-
-- Implement unit tests to ensure code reliability.
-- Parametrize tests using `pytest.mark.parametrize` to handle as many cases as possible.
-- Follow all Ruff standards when writing unit tests.
-- Always use tuple syntax for the variable list of `pytest.mark.parametrize`.
-- Use `pytest.mark.asyncio` for async functions.
-- Use fixtures to mock third-party dependencies; use autospec whenever possible.
-- Use only pytest and pytest plugins. Do not use the `unittest` module.
-- All tests should have typing annotations.
-- All tests should live in `./tests`.
-- Create all necessary files and folders under `./tests`.
-- If creating files inside `./tests` or `./src/goob_ai`, add an `__init__.py` if one does not exist.
-- All tests should be fully annotated and contain docstrings.
-- Import the following under `if TYPE_CHECKING` when needed:
-
-```python
-from _pytest.capture import CaptureFixture
-from _pytest.fixtures import FixtureRequest
-from _pytest.logging import LogCaptureFixture
-from _pytest.monkeypatch import MonkeyPatch
-from pytest_mock.plugin import MockerFixture
-```
