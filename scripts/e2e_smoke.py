@@ -19,6 +19,7 @@ import httpx
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_PDF_PATH = ROOT_DIR / "assets" / "fixtures" / "GraphRAG.pdf"
+DEFAULT_CASES_PATH = ROOT_DIR / "assets" / "fixtures" / "e2e_smoke_cases.json"
 READINESS_TIMEOUT_SECONDS = 45
 INDEXING_TIMEOUT_SECONDS = 180
 CHAT_TIMEOUT_SECONDS = 180
@@ -34,6 +35,40 @@ class SmokeCase:
     expected_reasoning: str = ""
     expected_text: str = ""
     expects_visual_widget: bool = False
+
+    @classmethod
+    def from_payload(cls, payload: object) -> "SmokeCase":
+        if not isinstance(payload, dict):
+            raise ValueError("Each smoke case must be a JSON object")
+
+        required_fields = ("name", "message", "system_prompt")
+        for field_name in required_fields:
+            if not isinstance(payload.get(field_name), str) or not payload[field_name]:
+                raise ValueError(f"Smoke case requires a non-empty {field_name}")
+
+        string_fields = ("expected_reasoning", "expected_text")
+        boolean_fields = (
+            "web_search_enabled",
+            "requires_reference",
+            "expects_visual_widget",
+        )
+        for field_name in string_fields:
+            if field_name in payload and not isinstance(payload[field_name], str):
+                raise ValueError(f"Smoke case {field_name} must be a string")
+        for field_name in boolean_fields:
+            if field_name in payload and not isinstance(payload[field_name], bool):
+                raise ValueError(f"Smoke case {field_name} must be a boolean")
+
+        return cls(
+            name=payload["name"],
+            message=payload["message"],
+            system_prompt=payload["system_prompt"],
+            web_search_enabled=payload.get("web_search_enabled", False),
+            requires_reference=payload.get("requires_reference", False),
+            expected_reasoning=payload.get("expected_reasoning", ""),
+            expected_text=payload.get("expected_text", ""),
+            expects_visual_widget=payload.get("expects_visual_widget", False),
+        )
 
 
 @dataclass
@@ -68,38 +103,6 @@ class StreamResult:
         )
 
 
-SMOKE_CASES = (
-    SmokeCase(
-        name="web-search-hoa-phat",
-        message="Tình hình cổ phiếu Hoà Phát",
-        system_prompt="Use web search before answering and cite the web source.",
-        web_search_enabled=True,
-        expected_reasoning="[Web Search]",
-    ),
-    SmokeCase(
-        name="graphrag-vs-traditional-rag",
-        message="Compare GraphRAG and traditional RAG using the uploaded paper.",
-        system_prompt=(
-            "Use internal_search_tool before answering. Cite the uploaded paper "
-            "with its chunk IDs and include the required snippets block."
-        ),
-        requires_reference=True,
-        expected_reasoning="[Internal Search]",
-        expected_text="graphrag",
-    ),
-    SmokeCase(
-        name="milvus-architecture-visualization",
-        message="Visualize the Milvus architecture.",
-        system_prompt=(
-            "Call visualize_read_me with the diagram module before answering, "
-            "then return one valid visualize:diagram fence."
-        ),
-        expected_reasoning="[Visualization]",
-        expects_visual_widget=True,
-    ),
-)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the isolated platform smoke suite."
@@ -114,6 +117,12 @@ def parse_args() -> argparse.Namespace:
         "--with-ui",
         action="store_true",
         help="Also run the small Playwright upload and chat journey.",
+    )
+    parser.add_argument(
+        "--cases",
+        type=Path,
+        default=Path(os.environ.get("E2E_CASES_PATH", DEFAULT_CASES_PATH)),
+        help="Path to the JSON smoke-case definition file.",
     )
     parser.add_argument(
         "--keep-artifacts",
@@ -138,6 +147,24 @@ def require_pdf(pdf_path: Path) -> Path:
         msg = f"Smoke input must be a PDF: {resolved}"
         raise ValueError(msg)
     return resolved
+
+
+def load_cases(cases_path: Path) -> tuple[SmokeCase, ...]:
+    resolved = cases_path.expanduser().resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(f"Smoke case file was not found: {resolved}")
+    try:
+        payload = json.loads(resolved.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Smoke case file is not valid JSON: {resolved}") from exc
+    if not isinstance(payload, list) or not payload:
+        raise ValueError("Smoke case file must contain a non-empty JSON array")
+
+    cases = tuple(SmokeCase.from_payload(item) for item in payload)
+    case_names = [case.name for case in cases]
+    if len(case_names) != len(set(case_names)):
+        raise ValueError("Smoke case names must be unique")
+    return cases
 
 
 async def wait_for_api(client: httpx.AsyncClient, base_url: str) -> None:
@@ -276,7 +303,12 @@ async def run_chat_case(
     return result
 
 
-async def run_api_smoke(base_url: str, pdf_path: Path, artifacts_dir: Path) -> None:
+async def run_api_smoke(
+    base_url: str,
+    pdf_path: Path,
+    cases: tuple[SmokeCase, ...],
+    artifacts_dir: Path,
+) -> None:
     async with httpx.AsyncClient(timeout=30) as client:
         await wait_for_api(client, base_url)
         collection_id = await create_collection(client, base_url)
@@ -288,7 +320,7 @@ async def run_api_smoke(base_url: str, pdf_path: Path, artifacts_dir: Path) -> N
         if chunks.json()["total"] < 1:
             raise AssertionError("Indexed GraphRAG PDF did not produce any chunks")
 
-        for case in SMOKE_CASES:
+        for case in cases:
             result = await run_chat_case(client, base_url, case, collection_id)
             output_path = artifacts_dir / f"{case.name}.json"
             output_path.write_text(
@@ -330,6 +362,7 @@ async def run_ui_smoke(frontend_url: str, base_url: str, pdf_path: Path) -> None
 
 async def run(args: argparse.Namespace) -> None:
     pdf_path = require_pdf(args.pdf)
+    cases = load_cases(args.cases)
     api_port = reserve_port()
     frontend_port = reserve_port()
     temp_root = Path(tempfile.mkdtemp(prefix="ai-agent-inventory-e2e-"))
@@ -359,7 +392,7 @@ async def run(args: argparse.Namespace) -> None:
             )
             try:
                 api_url = f"http://127.0.0.1:{api_port}"
-                await run_api_smoke(api_url, pdf_path, artifacts_dir)
+                await run_api_smoke(api_url, pdf_path, cases, artifacts_dir)
                 if args.with_ui:
                     frontend_url = f"http://127.0.0.1:{frontend_port}"
                     async with httpx.AsyncClient(timeout=10) as client:

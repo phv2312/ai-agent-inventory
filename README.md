@@ -133,8 +133,9 @@ visualization tool through the SSE API.
 uv run python scripts/e2e_smoke.py
 ```
 
-The committed fixture is `assets/fixtures/GraphRAG.pdf`. Pass `--pdf` or set
-`E2E_PDF_PATH` to run the same checks against another PDF.
+The committed fixtures are `assets/fixtures/GraphRAG.pdf` and
+`assets/fixtures/e2e_smoke_cases.json`. Pass `--pdf` / `E2E_PDF_PATH` or
+`--cases` / `E2E_CASES_PATH` to run another document or scenario set.
 
 Add `--with-ui` to run the small Playwright journey as well: create a
 collection in the UI, upload the same PDF, wait for indexing, select it for a
