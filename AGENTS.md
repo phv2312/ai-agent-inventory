@@ -1,12 +1,10 @@
 # Repository Agent Instructions
 
-## Current Spec Context
+## Current Context
 
-<!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan at
-`specs/013-evaluation-dataset/plan.md`.
-<!-- SPECKIT END -->
+- Treat the current repository structure and README as the source of truth.
+- Read a `specs/` plan only when it exists and is relevant to the requested
+  work; do not assume an absent historical plan is required.
 
 ## General Python Practices
 
@@ -54,6 +52,36 @@ Apply globally.
 
 - Use modular design with distinct files for models, services, controllers, and utilities.
 - For separated modules, handle exceptions using a dedicated set of module exceptions, fine-grained to each case.
+
+## Configuration and External Boundaries
+
+Apply to scripts and services that call external endpoints.
+
+- Use a focused `pydantic_settings.BaseSettings` class for environment-driven
+  inputs; use uppercase field names that map directly to environment variables.
+- Put stable module or protocol constants on classes as `ClassVar` values.
+- Represent API routes through a small endpoint value object rather than
+  assembling URL strings throughout the workflow.
+- Keep lifecycle ownership explicit: a caller-owned service must not be started,
+  stopped, or reconfigured by a client-side smoke script.
+- Use `structlog` with stable, namespaced event names for operational progress;
+  do not use `print` for normal workflow logging.
+
+## Smoke Test Scripts
+
+Apply to `scripts/smoke/`.
+
+- Keep each smoke-test concern in its own module: models, fixture utilities,
+  and the backend workflow.
+- Keep fixture documents and JSON case definitions under
+  `scripts/smoke/fixtures/`; load cases from JSON rather than hard-coding them
+  in Python.
+- Treat the target API as an external, already-running dependency. Support local
+  and remote URLs through settings, but do not manage server processes.
+- Use an async context manager to own the HTTP client and fail if a workflow
+  attempts to reuse an already-active client.
+- Preserve per-case SSE transcripts as artifacts and log the artifact path on
+  success or failure.
 
 ## Comments and Documentation
 
