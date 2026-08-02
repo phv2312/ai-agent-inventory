@@ -141,6 +141,12 @@ The committed fixtures are `scripts/smoke/fixtures/GraphRAG.pdf` and
 SSE transcripts are retained under `.e2e-artifacts/` for every run (or set
 `--artifacts-dir` / `E2E_ARTIFACTS_DIR`).
 
+### 8. Coding-assistant skills
+
+Repository-integrated coding-assistant guidance lives in `skills/`. The first
+skill, [OpenAI Agents SDK](skills/openai-agents-sdk/SKILL.md), captures Python
+`openai-agents` package usage with examples drawn from this codebase.
+
 ---
 
 ## Components
