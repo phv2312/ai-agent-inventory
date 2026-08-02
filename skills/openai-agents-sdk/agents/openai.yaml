@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenAI Agents SDK"
-  short_description: "Build reliable SDK-based agents"
-  default_prompt: "Use $openai-agents-sdk to implement or review this Agents SDK change."
