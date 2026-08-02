@@ -62,9 +62,8 @@ set -a && source .env && set +a   # macOS / Linux
 ```
 
 Phoenix tracing is off by default, so local API runs do not need a Phoenix
-server. Set `PHOENIX_TRACING_ENABLED=true` to export traces; `scripts/run.sh`
-then starts Phoenix alongside the API and frontend. Trace-backed evaluation
-also requires this setting.
+server. Set `PHOENIX_TRACING_ENABLED=true` to export traces to an already
+running Phoenix instance. Trace-backed evaluation also requires this setting.
 
 Optional API settings (prefix `AGENT_API_`):
 
@@ -76,7 +75,7 @@ Optional API settings (prefix `AGENT_API_`):
 ### 3. Run the API
 
 ```bash
-uvicorn agent.api.main:app --reload --port 8080
+bash scripts/run.sh --api-only
 ```
 
 - API: http://localhost:8080
@@ -87,8 +86,7 @@ See [agent/api/docs/integration-guide.md](agent/api/docs/integration-guide.md) f
 ### 4. Frontend (chat UI)
 
 ```bash
-cd frontend
-npm install
+npm install --prefix frontend
 ```
 
 Create `frontend/.env`. Leave `VITE_API_BASE_URL` empty to use the Vite dev
@@ -99,7 +97,7 @@ VITE_API_BASE_URL=
 ```
 
 ```bash
-npm run dev
+bash scripts/run.sh
 ```
 
 Open http://localhost:5173
@@ -124,6 +122,24 @@ capture, metric evaluation, and visualization artifact extraction.
 
 See [evaluation/README.md](evaluation/README.md) for commands. Latest run:
 run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
+
+### 7. Platform smoke test
+
+Start the API yourself. The smoke suite never starts, stops, or configures the
+server. It uploads a real GraphRAG PDF to the API URL you provide, waits for
+indexing, then checks web search, document retrieval, and the visualization
+tool through SSE.
+
+```bash
+E2E_API_URL=http://127.0.0.1:8080 uv run python -m scripts.smoke.backend
+```
+
+The committed fixtures are `scripts/smoke/fixtures/GraphRAG.pdf` and
+`scripts/smoke/fixtures/e2e_smoke_cases.json`. Set `E2E_PDF_PATH` or
+`E2E_CASES_PATH` to run another document or scenario set.
+
+SSE transcripts are retained under `.e2e-artifacts/` for every run (or set
+`--artifacts-dir` / `E2E_ARTIFACTS_DIR`).
 
 ---
 

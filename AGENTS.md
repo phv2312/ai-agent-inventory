@@ -1,13 +1,5 @@
 # Repository Agent Instructions
 
-## Current Spec Context
-
-<!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan at
-`specs/013-evaluation-dataset/plan.md`.
-<!-- SPECKIT END -->
-
 ## General Python Practices
 
 Apply to `**/*.py`.
@@ -20,6 +12,7 @@ Apply to `**/*.py`.
 - Prefer `pathlib` to `os.path`.
 - Do not use `getattr`; prefer explicit attributes, typed fields, or direct access.
 - Do not add `from __future__ import annotations` unless required, for example recursive types that cannot use quoted forward refs. Quoted forward references such as `"ClassA"` are fine.
+- Avoid hard-coded literals when they represent stable behavior, protocol values, routes, filenames, environment keys, limits, or reusable defaults. Prefer named constants on the owning class or module over repeated literals.
 
 ## Advanced Python Practices
 
@@ -55,6 +48,7 @@ Apply globally.
 - Use modular design with distinct files for models, services, controllers, and utilities.
 - For separated modules, handle exceptions using a dedicated set of module exceptions, fine-grained to each case.
 
+
 ## Comments and Documentation
 
 Apply to `**/*.py` and `README.md`.
@@ -63,29 +57,3 @@ Apply to `**/*.py` and `README.md`.
   docstrings for this purpose.
 - Keep comments to a maximum line length of 79.
 - Update README correspondingly if new features are introduced.
-
-## Unit Testing
-
-Apply to `**/tests/**/*`.
-
-- Implement unit tests to ensure code reliability.
-- Parametrize tests using `pytest.mark.parametrize` to handle as many cases as possible.
-- Follow all Ruff standards when writing unit tests.
-- Always use tuple syntax for the variable list of `pytest.mark.parametrize`.
-- Use `pytest.mark.asyncio` for async functions.
-- Use fixtures to mock third-party dependencies; use autospec whenever possible.
-- Use only pytest and pytest plugins. Do not use the `unittest` module.
-- All tests should have typing annotations.
-- All tests should live in `./tests`.
-- Create all necessary files and folders under `./tests`.
-- If creating files inside `./tests` or `./src/goob_ai`, add an `__init__.py` if one does not exist.
-- All tests should be fully annotated and contain docstrings.
-- Import the following under `if TYPE_CHECKING` when needed:
-
-```python
-from _pytest.capture import CaptureFixture
-from _pytest.fixtures import FixtureRequest
-from _pytest.logging import LogCaptureFixture
-from _pytest.monkeypatch import MonkeyPatch
-from pytest_mock.plugin import MockerFixture
-```
