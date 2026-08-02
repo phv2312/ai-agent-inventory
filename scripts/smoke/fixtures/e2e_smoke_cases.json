@@ -1,0 +1,32 @@
+[
+  {
+    "name": "web-search-hoa-phat",
+    "message": "Tình hình cổ phiếu Hoà Phát",
+    "system_prompt": "Use web search before answering and cite the web source.",
+    "web_search_enabled": true,
+    "requires_reference": false,
+    "expected_reasoning": "[Web Search]",
+    "expected_text": "",
+    "expects_visual_widget": false
+  },
+  {
+    "name": "graphrag-vs-traditional-rag",
+    "message": "Compare GraphRAG and traditional RAG using the uploaded paper.",
+    "system_prompt": "Use internal_search_tool before answering. Cite the uploaded paper with its chunk IDs and include the required snippets block.",
+    "web_search_enabled": false,
+    "requires_reference": true,
+    "expected_reasoning": "[Internal Search]",
+    "expected_text": "graphrag",
+    "expects_visual_widget": false
+  },
+  {
+    "name": "milvus-architecture-visualization",
+    "message": "Visualize the Milvus architecture.",
+    "system_prompt": "Call visualize_read_me with the diagram module before answering, then return one valid visualize:diagram fence.",
+    "web_search_enabled": false,
+    "requires_reference": false,
+    "expected_reasoning": "[Visualization]",
+    "expected_text": "",
+    "expects_visual_widget": true
+  }
+]

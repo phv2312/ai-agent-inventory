@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,7 +13,7 @@ def create_app(container: ApiContainer | None = None) -> FastAPI:
     api_container = container or ApiContainer()
 
     @asynccontextmanager
-    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         await api_container.startup()
         _app.state.container = api_container
         yield

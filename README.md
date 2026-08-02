@@ -125,37 +125,18 @@ run-2 — 50 queries, 94% tool-call accuracy, 31/31 visualizations runnable.
 
 ### 7. Platform smoke test
 
-Start the API and, optionally, frontend yourself. The smoke test never starts,
-stops, or configures either server: it uploads a real GraphRAG PDF to the API
-URL you provide, waits for indexing, then checks web search, document retrieval,
-and the visualization tool through SSE.
+Start the API yourself. The smoke suite never starts, stops, or configures the
+server. It uploads a real GraphRAG PDF to the API URL you provide, waits for
+indexing, then checks web search, document retrieval, and the visualization
+tool through SSE.
 
 ```bash
-uv run python scripts/e2e_smoke.py --api-url http://127.0.0.1:8080
+E2E_API_URL=http://127.0.0.1:8080 uv run python -m scripts.smoke.backend
 ```
 
-The committed fixtures are `assets/fixtures/GraphRAG.pdf` and
-`assets/fixtures/e2e_smoke_cases.json`. Pass `--pdf` / `E2E_PDF_PATH` or
-`--cases` / `E2E_CASES_PATH` to run another document or scenario set.
-
-Add `--with-ui` to run the small Playwright journey as well: create a
-collection in the UI, upload the same PDF, wait for indexing, select it for a
-new conversation, and receive a grounded response. It supports remote services
-too:
-
-```bash
-uv run python scripts/e2e_smoke.py \
-  --api-url https://api.example.com \
-  --frontend-url https://app.example.com \
-  --with-ui
-```
-
-Alternatively, set `E2E_API_URL` and `E2E_FRONTEND_URL`. Install Chromium once
-before a UI run:
-
-```bash
-cd frontend && npx playwright install chromium
-```
+The committed fixtures are `scripts/smoke/fixtures/GraphRAG.pdf` and
+`scripts/smoke/fixtures/e2e_smoke_cases.json`. Set `E2E_PDF_PATH` or
+`E2E_CASES_PATH` to run another document or scenario set.
 
 SSE transcripts are retained under `.e2e-artifacts/` for every run (or set
 `--artifacts-dir` / `E2E_ARTIFACTS_DIR`).
