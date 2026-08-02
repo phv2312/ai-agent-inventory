@@ -253,16 +253,16 @@ async def run_chat_case(
     collection_id: str | None,
 ) -> StreamResult:
     conversation_id = await create_conversation(client, base_url)
-    form_data: list[tuple[str, str]] = [
-        ("conversation_id", conversation_id),
-        ("message", case.message),
-        ("system_prompt", case.system_prompt),
-        ("web_search_enabled", str(case.web_search_enabled).lower()),
-    ]
+    form_data = {
+        "conversation_id": conversation_id,
+        "message": case.message,
+        "system_prompt": case.system_prompt,
+        "web_search_enabled": str(case.web_search_enabled).lower(),
+    }
     if case.requires_reference:
         if collection_id is None:
             raise ValueError(f"Case {case.name} requires an indexed collection")
-        form_data.append(("collection_ids", collection_id))
+        form_data["collection_ids"] = collection_id
 
     result = StreamResult()
     async with client.stream(
