@@ -4,7 +4,7 @@ import argparse
 import asyncio
 from pathlib import Path
 
-from agent.env import Env
+from agent.core.env import Env
 
 from evaluation.dataset_loader import load_dataset
 from evaluation.exceptions import PhoenixTraceError

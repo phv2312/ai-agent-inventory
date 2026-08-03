@@ -7,7 +7,7 @@ import pandas as pd
 from phoenix.client import Client
 from phoenix.trace.dsl import SpanQuery
 
-from agent.env import Env
+from agent.core.env import Env
 
 from evaluation.models import (
     AgentTrace,
