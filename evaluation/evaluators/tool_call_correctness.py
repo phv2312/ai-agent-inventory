@@ -5,7 +5,7 @@ import json
 from openai import AsyncAzureOpenAI
 from pydantic import BaseModel, ValidationError
 
-from agent.env import Env
+from agent.core.env import Env
 
 from evaluation.exceptions import JudgeError
 from evaluation.models import AgentTrace, ToolCallJudgment, ToolJudgmentLabel

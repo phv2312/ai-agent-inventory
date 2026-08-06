@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from agent.env import Env
+from agent.core.env import Env
 
 from evaluation.evaluators.tool_call_correctness import AzureToolCallJudge
 from evaluation.evaluators.visualize_runnability import (

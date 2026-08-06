@@ -5,8 +5,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from agent.deps.container import container
-from agent.tracer import new_request_id
+from agent.core.deps.container import container
+from agent.core.tracer import new_request_id
 
 from evaluation.exceptions import TraceCaptureError
 from evaluation.models import (

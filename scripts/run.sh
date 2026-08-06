@@ -41,7 +41,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cd "$root_dir"
-uv run uvicorn agent.api.main:app --host 127.0.0.1 --port "$api_port" &
+uv run uvicorn agent.backend.api.main:app --host 127.0.0.1 --port "$api_port" &
 api_pid="$!"
 
 if [[ "$api_only" == true ]]; then

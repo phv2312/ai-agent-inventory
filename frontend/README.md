@@ -5,7 +5,7 @@ React SPA for the Agent HTTP API v1 — chat, collections, PDF indexing, citatio
 ## Prerequisites
 
 - Node.js 20+
-- Agent API running: `uvicorn agent.api.main:app --port 8080`
+- Agent API running: `uvicorn agent.backend.api.main:app --port 8080`
 
 ## Setup
 

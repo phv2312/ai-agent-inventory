@@ -81,7 +81,7 @@ bash scripts/run.sh --api-only
 - API: http://localhost:8080
 - Interactive docs: http://localhost:8080/docs
 
-See [agent/api/docs/integration-guide.md](agent/api/docs/integration-guide.md) for the full HTTP workflow (collections → PDF upload → chat).
+See [agent/backend/api/docs/integration-guide.md](agent/backend/api/docs/integration-guide.md) for the full HTTP workflow (collections → PDF upload → chat).
 
 ### 4. Frontend (chat UI)
 
@@ -110,6 +110,9 @@ pre-commit install
 
 # Backend tests
 pytest tests/ -q
+
+# Ensure `agent.core` does not depend on `agent.backend`
+python scripts/check_architecture.py
 
 # Frontend widget-runtime tests + production build
 cd frontend && npm run test:widget-runtime && npm run build
@@ -148,6 +151,16 @@ skill, [OpenAI Agents SDK](skills/openai-agents-sdk/SKILL.md), captures Python
 `openai-agents` package usage with examples drawn from this codebase.
 
 ---
+
+## Package architecture
+
+`agent.core` contains the reusable agent runtime: models, RAG strategies,
+prompts, programs, embeddings, extractors, text splitters, and storage
+implementations. It never imports `agent.backend`.
+
+`agent.backend` contains persistence and delivery concerns: the FastAPI API,
+SQLAlchemy database models, repositories, chat streaming, indexing workers,
+and backend services. It may import `agent.core`.
 
 ## Components
 
