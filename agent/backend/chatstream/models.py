@@ -2,6 +2,8 @@ import re
 
 from pydantic import BaseModel, Field
 
+from agent.core.tools import AgentInterruption
+
 
 class StreamChatItem(BaseModel):
     idx: int = 0
@@ -18,29 +20,10 @@ class NameSuggestionData(BaseModel):
     name: str
 
 
-class BlockOpenData(BaseModel):
-    type: str
-    order: int
-    module: str | None = None
-    title: str | None = None
-    loading_messages: list[str] = Field(default_factory=list)
-
-
-class BlockDeltaData(BaseModel):
-    order: int
-    content: str
-
-
-class BlockCloseData(BaseModel):
-    order: int
-    status: str
-    error_message: str | None = None
-
-
-class TokenUsageData(BaseModel):
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-    total_tokens: int = 0
+class InterruptionEventData(BaseModel):
+    conversation_id: str
+    version: int = Field(ge=1)
+    interruptions: list[AgentInterruption] = Field(min_length=1)
 
 
 CITATION_INDEX_PATTERN = re.compile(r"\[\s*(\d+)\s*\]")

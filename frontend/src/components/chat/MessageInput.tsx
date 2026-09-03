@@ -5,6 +5,7 @@ import { useAppSelector } from '../../hooks/redux';
 import { useConversationSelections } from '../../hooks/useConversationSelections';
 import { PaperAirplaneIcon } from '../../config/icons';
 import { referenceDisplayName } from '../../types/references';
+import { parseChatCommand } from '../../utils/chatCommands';
 
 const mentionStyle = {
     textDecoration: 'underline',
@@ -31,7 +32,11 @@ export function MessageInput({
     const text = controlledText ?? internalText;
     const setText = onTextChange ?? setInternalText;
 
-    const { sendMessage, isStreaming, cancel } = useChatStream();
+    const { sendMessage, isStreaming, isResolvingInterruption, cancel } =
+        useChatStream();
+    const pendingInterruption = useAppSelector(
+        (state) => state.chat.pendingInterruption,
+    );
     const { selectedConversationId } = useAppSelector((state) => state.conversation);
     const { references } = useConversationSelections(selectedConversationId);
 
@@ -57,7 +62,15 @@ export function MessageInput({
     const submitForm = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmed = text.trim();
-        if (!trimmed || isStreaming) return;
+        const command = parseChatCommand(trimmed);
+        if (
+            !command.message
+            || isStreaming
+            || isResolvingInterruption
+            || pendingInterruption
+        ) {
+            return;
+        }
         setText('');
         void sendMessage(trimmed);
     };
@@ -65,9 +78,14 @@ export function MessageInput({
     const isCentered = variant === 'centered';
     const wrapperClass = isCentered ? 'w-full' : 'shrink-0 bg-app';
 
-    const placeholder = isCentered
-        ? 'How can I help you today?'
-        : 'Write a message...';
+    const placeholder = pendingInterruption
+        ? 'Review the global query plan to continue'
+        : isCentered
+          ? 'Ask anything, or use /global for a planned query'
+          : 'Write a message, or start with /global...';
+    const isBlocked = Boolean(
+        isStreaming || isResolvingInterruption || pendingInterruption,
+    );
 
     return (
         <div className={wrapperClass}>
@@ -95,7 +113,7 @@ export function MessageInput({
                                 onChange={(_, newValue) => setText(newValue)}
                                 placeholder={placeholder}
                                 allowSuggestionsAboveCursor
-                                disabled={isStreaming}
+                                disabled={isBlocked}
                                 className={`composer-mentions mentions w-full border-0 bg-transparent shadow-none ring-0 ${
                                     isCentered
                                         ? 'min-h-[5.25rem]'
@@ -124,7 +142,9 @@ export function MessageInput({
                             ) : (
                                 <button
                                     type="submit"
-                                    disabled={!text.trim()}
+                                    disabled={
+                                        !parseChatCommand(text).message || isBlocked
+                                    }
                                     className="inline-flex items-center justify-center rounded-full bg-[var(--color-primary)] p-2.5 text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                                     aria-label="Send message"
                                 >

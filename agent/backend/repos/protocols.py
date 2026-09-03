@@ -57,6 +57,18 @@ class ReferenceRecord:
     updated_at: datetime
 
 
+@dataclass
+class PendingAgentRunRecord:
+    conversation_id: str
+    user_message_id: str
+    state_json: str
+    request_snapshot: dict[str, Any]
+    interruptions: list[dict[str, Any]]
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class ConversationRepository(Protocol):
     async def create(self, title: str = "") -> ConversationRecord: ...
     async def get(self, conversation_id: str) -> ConversationRecord | None: ...
@@ -146,3 +158,25 @@ class ReferenceRepository(Protocol):
         self, reference_id: str, file_path: str
     ) -> ReferenceRecord | None: ...
     async def delete(self, reference_id: str) -> bool: ...
+
+
+class PendingAgentRunRepository(Protocol):
+    async def create(
+        self,
+        *,
+        conversation_id: str,
+        user_message_id: str,
+        state_json: str,
+        request_snapshot: dict[str, Any],
+        interruptions: list[dict[str, Any]],
+    ) -> PendingAgentRunRecord: ...
+    async def get(self, conversation_id: str) -> PendingAgentRunRecord | None: ...
+    async def replace(
+        self,
+        *,
+        conversation_id: str,
+        version: int,
+        state_json: str,
+        interruptions: list[dict[str, Any]],
+    ) -> PendingAgentRunRecord | None: ...
+    async def delete(self, conversation_id: str, version: int) -> bool: ...

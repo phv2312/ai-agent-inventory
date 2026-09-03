@@ -1,5 +1,7 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { getMessagesByConversation } from '../services/api/conversation';
+import type { InterruptionData } from '../services/api/chats';
+import { getPendingInterruption } from '../services/api/chats';
 import type {
     BlockClosePayload,
     BlockDeltaPayload,
@@ -31,6 +33,24 @@ export const fetchMessagesByConversation = createAsyncThunk(
     },
 );
 
+export const fetchPendingInterruption = createAsyncThunk(
+    'chat/fetchPendingInterruption',
+    async (conversationId: string, { rejectWithValue }) => {
+        try {
+            return {
+                conversationId,
+                interruption: await getPendingInterruption(conversationId),
+            };
+        } catch (error) {
+            return rejectWithValue(
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to load pending global query',
+            );
+        }
+    },
+);
+
 interface ChatState {
     messages: ChatMessage[];
     streamingMessageIdx: number | null;
@@ -39,6 +59,10 @@ interface ChatState {
     error: string | null;
     reasoningExpanded: boolean;
     streamingUsesBlocks: boolean;
+    pendingInterruption: InterruptionData | null;
+    pendingInterruptionConversationId: string | null;
+    isResolvingInterruption: boolean;
+    interruptionError: string | null;
 }
 
 const initialState: ChatState = {
@@ -49,6 +73,10 @@ const initialState: ChatState = {
     error: null,
     reasoningExpanded: true,
     streamingUsesBlocks: false,
+    pendingInterruption: null,
+    pendingInterruptionConversationId: null,
+    isResolvingInterruption: false,
+    interruptionError: null,
 };
 
 function getStreamingMessage(state: ChatState): ChatMessage | null {
@@ -66,6 +94,10 @@ export const chatSlice = createSlice({
             state.error = null;
             state.isLoadingMessages = false;
             state.streamingUsesBlocks = false;
+            state.pendingInterruption = null;
+            state.pendingInterruptionConversationId = null;
+            state.isResolvingInterruption = false;
+            state.interruptionError = null;
         },
         addUserMessage(state, action: PayloadAction<ChatMessage>) {
             state.messages.push(action.payload);
@@ -168,9 +200,59 @@ export const chatSlice = createSlice({
         clearError(state) {
             state.error = null;
         },
+        setPendingInterruption(state, action: PayloadAction<InterruptionData>) {
+            state.pendingInterruption = action.payload;
+            state.pendingInterruptionConversationId = action.payload.conversationId;
+            state.isResolvingInterruption = false;
+            state.interruptionError = null;
+        },
+        clearPendingInterruption(state) {
+            state.pendingInterruption = null;
+            state.pendingInterruptionConversationId = null;
+            state.isResolvingInterruption = false;
+            state.interruptionError = null;
+        },
+        startResolvingInterruption(state) {
+            state.isResolvingInterruption = true;
+            state.interruptionError = null;
+        },
+        finishResolvingInterruption(state) {
+            state.isResolvingInterruption = false;
+        },
+        setInterruptionError(state, action: PayloadAction<string>) {
+            state.interruptionError = action.payload;
+            state.isResolvingInterruption = false;
+        },
     },
     extraReducers: (builder) => {
         builder
+            .addCase(fetchPendingInterruption.pending, (state, action) => {
+                if (
+                    state.pendingInterruption?.conversationId !== action.meta.arg
+                ) {
+                    state.pendingInterruption = null;
+                }
+                state.pendingInterruptionConversationId = action.meta.arg;
+                state.interruptionError = null;
+            })
+            .addCase(fetchPendingInterruption.fulfilled, (state, action) => {
+                if (
+                    state.pendingInterruptionConversationId
+                    !== action.payload.conversationId
+                ) {
+                    return;
+                }
+                state.pendingInterruption = action.payload.interruption;
+            })
+            .addCase(fetchPendingInterruption.rejected, (state, action) => {
+                if (state.pendingInterruptionConversationId !== action.meta.arg) {
+                    return;
+                }
+                state.interruptionError =
+                    typeof action.payload === 'string'
+                        ? action.payload
+                        : 'Failed to load pending global query';
+            })
             .addCase(fetchMessagesByConversation.pending, (state) => {
                 if (!state.isStreaming) {
                     state.isLoadingMessages = true;
@@ -248,6 +330,11 @@ export const {
     stopStreaming,
     setStreamingError,
     clearError,
+    setPendingInterruption,
+    clearPendingInterruption,
+    startResolvingInterruption,
+    finishResolvingInterruption,
+    setInterruptionError,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

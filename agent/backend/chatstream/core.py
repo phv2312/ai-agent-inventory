@@ -1,23 +1,9 @@
 import json
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass, field
 
+from agents import RunResultStreaming
 from sse_starlette import ServerSentEvent
-from agents import RawResponsesStreamEvent, RunItemStreamEvent
-from agents.items import ToolCallItem
 
-from agent.core.deps.container import Container
-from agent.core.models.content_blocks import (
-    ContentBlock,
-    ContentBlockType,
-    PersistedContentBlock,
-)
-from agent.core.models.messages import AssistantMessage, UserMessage
-from agent.backend.chatstream.block_assembler import ContentBlockTransformer
-from agent.backend.chatstream.constants import (
-    ChatStreamEventNames,
-    ResponseStreamEventNames,
-)
 from agent.backend.chatstream.models import (
     CITATION_INDEX_PATTERN,
     NameSuggestionData,
@@ -25,18 +11,17 @@ from agent.backend.chatstream.models import (
     StreamErrorData,
     is_untitled_conversation,
 )
-from agent.backend.chatstream.tool_progress import ToolProgressFormatter
-
-
-@dataclass
-class ChatStreamState:
-    answer_text: str = ""
-    completed: bool = False
-    content_blocks: list[PersistedContentBlock] = field(default_factory=list)
-    reasoning_text: str = ""
-    validated_chunk_ids: list[str] = field(default_factory=list)
-    mp_chunk_snippets: dict[str, list[str]] = field(default_factory=dict)
-    had_error: bool = False
+from agent.core.deps.container import Container
+from agent.core._agent import RunInput
+from agent.core._agent.parser import (
+    ChatRunStatus,
+    ChatStreamState,
+    ParsedStreamError,
+    StreamParser,
+    ToolProgressDelta,
+)
+from agent.core.models.content_blocks import ContentBlock
+from agent.core.models.messages import AssistantMessage, Message, Messages, UserMessage
 
 
 class ChatStreamService:
@@ -52,76 +37,112 @@ class ChatStreamService:
         history: list[UserMessage | AssistantMessage],
         top_k: int,
         web_search_enabled: bool,
+        global_query: bool = False,
         system_prompt: str | None = None,
-        request_id: str | None = None,
     ) -> AsyncGenerator[ServerSentEvent, None]:
-        state = ChatStreamState()
-        transformer = ContentBlockTransformer()
-        strategy = self.agent_container.agentic.get()
-
-        reasoning_idx = 0
-        content_block_events: list[ContentBlock] = []
+        orchestrator = self.agent_container.agent.get()
         try:
-            events = await strategy.stream_async_answer(
+            history_messages: list[Message] = list(history)
+            snapshot = RunInput(
                 query=message,
                 file_ids=file_ids,
-                history=history,
+                history=Messages(root=history_messages),
                 top_k=top_k,
                 memory_md_content=system_prompt or "",
                 web_search_enabled=web_search_enabled,
+                global_query=global_query,
             )
-            async for event in events.stream_events():
-                if (
-                    isinstance(event, RawResponsesStreamEvent)
-                    and event.data.type == ResponseStreamEventNames.TEXT_DELTA
-                ):
-                    content = event.data.delta
-                    for content_block in transformer.transform(content):
-                        content_block_events.append(content_block)
-                        yield content_block.to_sse()
-                    continue
-                if (
-                    isinstance(event, RunItemStreamEvent)
-                    and event.name == ChatStreamEventNames.TOOL_CALLED
-                    and isinstance(event.item, ToolCallItem)
-                ):
-                    progress = ToolProgressFormatter.format(event.item)
-                    state.reasoning_text += progress
-                    reasoning_payload = [
-                        StreamChatItem(
-                            idx=reasoning_idx,
-                            content=progress,
-                        ).model_dump()
-                    ]
-                    reasoning_idx += 1
-                    yield ServerSentEvent(
-                        event="reasoning",
-                        data=json.dumps(reasoning_payload),
-                    )
+            result = await orchestrator.stream(snapshot)
+            async for event in self._parse_result(result):
+                yield event
         except Exception as exc:
-            state.had_error = True
-            error_payload = StreamErrorData(
-                code="InternalAIServiceError",
-                message=str(exc),
-            )
-            yield ServerSentEvent(event="error", data=error_payload.model_dump_json())
-        finally:
-            state.completed = not state.had_error
-            for content_block in transformer.finalize():
-                content_block_events.append(content_block)
-                yield content_block.to_sse()
-            state.content_blocks = PersistedContentBlock.from_events(
-                content_block_events,
-            )
-            state.mp_chunk_snippets = transformer.mp_chunk_snippets.copy()
-            state.validated_chunk_ids = list(state.mp_chunk_snippets)
-            state.answer_text = "".join(
-                block.text or ""
-                for block in state.content_blocks
-                if block.type == ContentBlockType.TEXT
-            )
+            async for event in self._stream_setup_error(exc):
+                yield event
 
-        self.last_state = state
+    async def resume(
+        self,
+        *,
+        snapshot: RunInput,
+        state_json: str,
+        decision: str,
+        feedback: str = "",
+    ) -> AsyncGenerator[ServerSentEvent, None]:
+        orchestrator = self.agent_container.agent.get()
+        try:
+            agent, run_state = await orchestrator.load_run_state(snapshot, state_json)
+            interruptions = run_state.get_interruptions()
+            if not interruptions:
+                raise ValueError("The saved run has no pending interruptions")
+            if decision == "approve":
+                for interruption in interruptions:
+                    run_state.approve(interruption)
+            elif decision == "revise":
+                rejection_message = (
+                    "The human reviewer requested these plan changes:\n"
+                    f"{feedback}\n\n"
+                    "Revise the plan and submit the complete replacement plan for "
+                    "approval. Do not execute the plan or write the final answer."
+                )
+                for interruption in interruptions:
+                    run_state.reject(
+                        interruption,
+                        rejection_message=rejection_message,
+                    )
+            else:
+                raise ValueError(f"Unsupported interruption decision: {decision}")
+
+            result = orchestrator.resume(agent, run_state)
+            async for event in self._parse_result(result):
+                yield event
+        except Exception as exc:
+            async for event in self._stream_setup_error(exc):
+                yield event
+
+    async def _parse_result(
+        self,
+        result: RunResultStreaming,
+    ) -> AsyncGenerator[ServerSentEvent, None]:
+        parser = StreamParser()
+        reasoning_text = ""
+        async for event in parser.parse(result):
+            if isinstance(event, ContentBlock):
+                yield event.to_sse()
+                continue
+            if isinstance(event, ToolProgressDelta):
+                reasoning_text += event.content
+                payload = [
+                    StreamChatItem(
+                        idx=event.idx,
+                        content=event.content,
+                    ).model_dump(),
+                ]
+                yield ServerSentEvent(event="reasoning", data=json.dumps(payload))
+                continue
+            if isinstance(event, ParsedStreamError):
+                error_payload = StreamErrorData(
+                    code="InternalAIServiceError",
+                    message=event.exception,
+                )
+                yield ServerSentEvent(
+                    event="error",
+                    data=error_payload.model_dump_json(),
+                )
+        self.last_state = parser.last_state
+        self.last_state.reasoning_text = reasoning_text
+
+    async def _stream_setup_error(
+        self,
+        exc: Exception,
+    ) -> AsyncGenerator[ServerSentEvent, None]:
+        self.last_state = ChatStreamState(
+            had_error=True,
+            status=ChatRunStatus.FAILED,
+        )
+        error_payload = StreamErrorData(
+            code="InternalAIServiceError",
+            message=str(exc),
+        )
+        yield ServerSentEvent(event="error", data=error_payload.model_dump_json())
 
     @staticmethod
     def build_mapping_evidence(

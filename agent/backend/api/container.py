@@ -9,12 +9,14 @@ from agent.backend.repos.citation import SQLCitationRepository
 from agent.backend.repos.collection import SQLCollectionRepository
 from agent.backend.repos.conversation import SQLConversationRepository
 from agent.backend.repos.message import SQLMessageRepository
+from agent.backend.repos.pending_run import SQLPendingAgentRunRepository
 from agent.backend.repos.reference import SQLReferenceRepository
 from agent.backend.repos.protocols import (
     CitationRepository,
     CollectionRepository,
     ConversationRepository,
     MessageRepository,
+    PendingAgentRunRepository,
     ReferenceRepository,
 )
 from agent.core.deps.container import Container
@@ -31,6 +33,7 @@ class Repositories:
     citations: CitationRepository
     collections: CollectionRepository
     references: ReferenceRepository
+    pending_runs: PendingAgentRunRepository
 
 
 class ApiContainer:
@@ -68,4 +71,5 @@ class ApiContainer:
             citations=SQLCitationRepository(session, self.settings),
             collections=SQLCollectionRepository(session),
             references=SQLReferenceRepository(session),
+            pending_runs=SQLPendingAgentRunRepository(session),
         )

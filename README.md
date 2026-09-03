@@ -166,11 +166,11 @@ and backend services. It may import `agent.core`.
 
 | Component | Description | Implementations |
 |:----------|:------------|:----------------|
-| agentic chat | OpenAI Agents SDK runtime for tool-driven RAG | - Azure OpenAI Responses |
+| agentic chat | OpenAI Agents SDK runtime with model-routed handoffs and durable human plan review | - Azure OpenAI Responses |
 | embeddings | Embedding model implementations for vector representations | - OpenAI embeddings |
 | extractors | Utilities for extracting information from various sources | - PDF Extractor |
 | models | Pydantic data models and schemas used throughout the system | - Message, Provider stream events |
-| rag | Agentic RAG chat strategies with tool-driven retrieval | - AgenticChatStrategy (OpenAI Agents SDK) |
+| rag | Request-scoped RAG orchestration with a review-gated global specialist | - AgenticChatStrategy (OpenAI Agents SDK) |
 | programs | LLM programs that generate structured data using Pydantic models | - Base program framework |
 | prompts | Templates and configurations for LLM chat prompts | - Agentic prompts |
 | storages | Storage implementations including vector database integrations | - Local storage<br>- Milvus |
@@ -185,6 +185,8 @@ and backend services. It may import `agent.core`.
 | ✅ | Agentic-RAG implementation and React chat UI |
 | ✅ | Built-in tools: internal search, web search, reflection |
 | ✅ | Inline visual generation integrated into the chat demo |
+| ✅ | Global-agent handoff with durable approval, revision, and cancellation |
+| ✅ | `/global` chat mode with frontend plan review |
 | 🔲 | Agent skills — sandbox vs. local machine execution (decision pending) |
 | 🔲 | Agent memory — define supported memory categories |
 | 🔲 | Enhanced extractor — split documents into typed elements (table, section, figure) |
