@@ -1,0 +1,18 @@
+## Template: chart
+```html
+<section id="throughput" class="lv-card">
+  <div class="lv-chart"><canvas aria-label="Items: Monday 120, Tuesday 180, Wednesday 150" role="img"></canvas></div>
+</section>
+<script>
+(() => {
+  const root = document.getElementById('throughput');
+  const accent = getComputedStyle(root).getPropertyValue('--lv-accent').trim();
+  new Chart(root.querySelector('canvas'), {
+    type: 'bar',
+    data: { labels: ['Mon', 'Tue', 'Wed'], datasets: [{ label: 'Items', data: [120, 180, 150], backgroundColor: accent }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      scales: { y: { beginAtZero: true, title: { display: true, text: 'Items' } } } }
+  });
+})();
+</script>
+```

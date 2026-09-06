@@ -24,36 +24,44 @@ VISUALIZATION_MODULES: tuple[VisualizeModule, ...] = (
 )
 
 
-@lru_cache(1)
-def _load_guidance() -> dict[VisualizeModule, str]:
-    return {
-        module: PromptsFactory.VISUALIZATION.get(module).render()
-        for module in VISUALIZATION_MODULES
-    }
+MODULE_TEMPLATES: dict[VisualizeModule, tuple[str, ...]] = {
+    "interactive": ("layout", "controls"),
+    "chart": ("layout", "chart"),
+    "diagram": ("layout", "mermaid"),
+    "mockup": ("layout", "controls"),
+    "art": ("svg",),
+}
 
 
-@lru_cache(1)
-def _load_readme() -> str:
-    return PromptsFactory.TOOLS.get("visualize_readme").render(
-        vis_templates="{vis_templates}",
+@lru_cache(maxsize=None)
+def _render(name: str) -> str:
+    return PromptsFactory.VISUALIZATION.get(name).render()
+
+
+def render_module_guidance(modules: list[VisualizeModule]) -> str:
+    """Assemble shared guidance and each requested module/template exactly once."""
+    requested = list(dict.fromkeys(modules))
+    for module in requested:
+        if module not in MODULE_TEMPLATES:
+            raise ValueError(f"Unknown visualization module: {module}")
+    templates = dict.fromkeys(
+        template for module in requested for template in MODULE_TEMPLATES[module]
     )
+    sections = [_render("shared")]
+    sections.extend(_render(module) for module in requested)
+    sections.extend(_render(f"templates/{name}") for name in templates)
+    return "\n\n---\n\n".join(sections)
 
 
 def build_visualize_tool() -> Tool:
-    mp_module_guidance = _load_guidance()
-    frontmatter = _load_readme()
-
     @function_tool
-    async def read_readme(
+    async def read_module_guideline(
         modules: Annotated[
             list[VisualizeModule],
             Field(description="Visualization modules required for the response"),
         ],
     ) -> str:
-        # Load only the application's requested inline visualization guidance.
-        merged_guidance = "\n\n---\n\n".join(
-            mp_module_guidance[module] for module in modules
-        )
-        return frontmatter.replace("{vis_templates}", merged_guidance)
+        """Read composable visualization guidance for all needed modules together."""
+        return render_module_guidance(modules)
 
-    return read_readme
+    return read_module_guideline

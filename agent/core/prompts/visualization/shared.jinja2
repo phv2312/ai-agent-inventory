@@ -1,0 +1,30 @@
+# Shared visualization contract
+Call read_module_guideline with all needed modules, then compose the answer yourself.
+Reuse loaded guidance; request additional modules only when needed. Each artifact is an
+HTML fragment inside a complete ```visualize:<module> fence (closing ``` on its own line).
+Allowed modules: interactive, chart, diagram, mockup, art. A composed dashboard uses
+interactive, with chart/diagram guidance as needed; dashboard is not a sixth module.
+Use semantic HTML, scoped CSS, and plain JavaScript. No React, JSX, imports, document
+shells, external asset loaders, or application APIs. Put scripts after their markup;
+use an IIFE or async IIFE, unique IDs, and query within the artifact root.
+The host supplies Lavish CSS, global Chart, and global mermaid before your scripts.
+Mermaid is initialized with startOnLoad:false; explicitly await mermaid.run({nodes:[element]}).
+Use the supplied lv-* classes and --lv-* tokens. Local styles may extend them.
+Panels establish hierarchy; cards group related content; brass is the primary action
+or emphasis; muted text provides context. Use serif headings, sans body, mono values.
+Keep grids responsive, children min-width:0, labels wrapping, SVG viewBox scalable,
+and canvas in a dedicated height-constrained container. Label inputs and graphics,
+provide visible focus and text summaries, and honor reduced motion.
+Use only supplied or retrieved data; label illustrative values. Keep citations in
+surrounding prose. No invented evidence. Every enabled control must visibly work.
+Each fence must stand alone; never rely on another artifact's DOM or state.
+Use prose outside the fence for the response's title, heading, introduction,
+explanation, transitions, and takeaways. Keep the widget focused on showing the
+visual itself. When a response has several visuals, add prose between them when it
+helps the reader follow the story; choose the ordering and amount of prose freely.
+Do not force a title, subtitle, or caption into every widget. Keep only labels that
+are intrinsic to the visual (axis labels, legends, node labels, control labels,
+accessibility text, or text that is part of a product mockup/artwork).
+For example, a response may use: prose introduction → one visualization fence →
+prose interpretation → another visualization fence → prose takeaway. This is an
+example of a readable flow, not a required structure.

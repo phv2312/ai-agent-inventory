@@ -104,9 +104,43 @@ class RunstateRepository:
         self.state.status = ChatRunStatus.FAILED
 
 
-def auto_catch_exceptions[**P](
-    func: FuncT[P],
-) -> FuncT[P]:
+def format_tool_display(item: ToolCallItem) -> str:
+    from openai.types.responses import ResponseFunctionWebSearch
+    from openai.types.responses.response_function_tool_call import (
+        ResponseFunctionToolCall,
+    )
+    from openai.types.responses.response_function_web_search import ActionSearch
+
+    def _format_web_search(item: ResponseFunctionWebSearch) -> str:
+        if isinstance(item.action, ActionSearch):
+            return f"[Web Search] {item.action.query or '_'}\n"
+        return "Searching over the internet"
+
+    def _format_function_call(item: ResponseFunctionToolCall) -> str:
+        import json
+
+        arguments = json.loads(item.arguments or "")
+
+        match item.name:
+            case "internal_search_tool":
+                return f"[Internal Search] {arguments.get('query') or '_'}\n"
+            case "think_tool":
+                return f"[Think] {arguments.get('reflection') or '_'}\n"
+            case "read_module_guideline":
+                return f"[Read Visual] {'-'.join(arguments.get('modules'))}\n"
+
+        return f"[{item.name or '_'}]\n"
+
+    match item.raw_item:
+        case ResponseFunctionToolCall() as function_call:
+            return _format_function_call(function_call)
+        case ResponseFunctionWebSearch() as web_call:
+            return _format_web_search(web_call)
+
+    return f"[Unknown] {item.tool_name}\n"
+
+
+def auto_catch_exceptions[**P](func: FuncT[P]) -> FuncT[P]:
     @wraps(func)
     async def wrapper(
         self: "StreamParser",
@@ -145,27 +179,20 @@ class StreamParser:
         *,
         transformer: ContentBlockTransformer | None = None,
     ) -> AsyncGenerator[ParsedStreamEvent, None]:
-        def _format_tool_progress(item: ToolCallItem) -> str:
-            return f"Using {item.name or 'tool'}..."
-
         transformer = transformer or ContentBlockTransformer()
         reasoning_idx = 0
         async for event in result.stream_events():
-            if (
-                isinstance(event, RawResponsesStreamEvent)
-                and isinstance(event.data, ResponseTextDeltaEvent)
-                and event.data.type == "response.output_text.delta"
+            if isinstance(event, RawResponsesStreamEvent) and isinstance(
+                event.data, ResponseTextDeltaEvent
             ):
                 for content_block in transformer.transform(event.data.delta):
                     yield content_block
                 continue
-            if (
-                isinstance(event, RunItemStreamEvent)
-                and event.name == "tool_called"
-                and isinstance(event.item, ToolCallItem)
+            if isinstance(event, RunItemStreamEvent) and isinstance(
+                event.item, ToolCallItem
             ):
                 yield ToolProgressDelta(
                     idx=reasoning_idx,
-                    content=_format_tool_progress(event.item),
+                    content=format_tool_display(event.item),
                 )
                 reasoning_idx += 1

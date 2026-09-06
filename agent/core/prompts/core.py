@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Final
 
 from jinja2 import (
     Environment,
@@ -17,8 +16,6 @@ class Jinja2PromptSettings(BaseModel):
 
 
 class Jinja2Prompts:
-    TEMPLATE_NAME: Final[str] = "{}.jinja2"
-
     def __init__(
         self,
         promptdir: Path,
@@ -35,8 +32,11 @@ class Jinja2Prompts:
 
     def get(self, template_name: str) -> Template:
         try:
+            # Visualization composition templates are authored as HTML snippets;
+            # keep the historical .jinja2 extension for surrounding prompts.
+            extension = ".html" if template_name.startswith("templates/") else ".jinja2"
             return self.env.get_template(
-                self.TEMPLATE_NAME.format(template_name),
+                f"{template_name}{extension}",
             )
         except TemplateNotFound as err:
             raise ValueError(

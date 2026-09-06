@@ -29,8 +29,7 @@ class AgentSettings:
 
 class AgentFactory:
     GLOBAL_HANDOFF_DESCRIPTION: Final[str] = (
-        "Handles broad, multi-step, synthesis, comparison, and planning requests "
-        "that benefit from a reviewable plan before evidence gathering."
+        "Handle global queries when user explicitly requires in query, via /global pattern"
     )
     GLOBAL_INSTRUCTION: Final[str] = """
 ## Review-gated workflow
@@ -54,7 +53,7 @@ Do not mention approval tools, handoffs, or internal workflow details.
         from agent.core.tools import submit_agent_plan
 
         return Agent(
-            name="global-agent",
+            name="global_agent",
             handoff_description=AgentFactory.GLOBAL_HANDOFF_DESCRIPTION,
             model=model,
             instructions=AgentFactory.GLOBAL_INSTRUCTION,
@@ -111,7 +110,7 @@ Do not mention approval tools, handoffs, or internal workflow details.
             model=model,
             instructions=template.render(doc_names=";".join(await _resolve_docnames())),
             tools=_build_tools(),
-            handoffs=handoffs,
+            handoffs=handoffs or [],
         )
 
 
