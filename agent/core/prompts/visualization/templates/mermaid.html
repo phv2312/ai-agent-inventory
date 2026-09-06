@@ -1,0 +1,17 @@
+## Template: mermaid
+```html
+<section id="pipeline" class="lv-card">
+  <pre class="mermaid">flowchart LR
+    A["Upload"] --> B["Extract"]
+    B --> C["Index"]
+    C --> D["Retrieve"]</pre>
+  <p class="lv-muted" role="status"></p>
+</section>
+<script>
+(async () => {
+  const root = document.getElementById('pipeline');
+  try { await mermaid.run({ nodes: [root.querySelector('.mermaid')] }); }
+  catch (error) { root.querySelector('[role="status"]').textContent = 'Diagram could not render: ' + error.message; }
+})();
+</script>
+```

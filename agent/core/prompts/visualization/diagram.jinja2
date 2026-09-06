@@ -1,9 +1,6 @@
-**Default**: all flowcharts, architecture, pipeline, tiered, sequence, and ER diagrams → **`KN.mermaid(source)`**. Wrap examples in `` ```visualize:diagram `` fences in your answer text. Raw SVG only for illustrative art.
-
-{% include "core/_mermaid_patterns.jinja2" %}
-
-{% include "core/_color_palette.jinja2" %}
-
-{% include "core/_svg_setup.jinja2" %}
-
-{% include "core/_diagram_types.jinja2" %}
+# Module: diagram
+Use direct Mermaid for architecture, flow, sequence, state, and ER relationships.
+Keep each view focused (roughly eight nodes); split crowded systems into labeled
+views. Use flowchart LR/TB, sequenceDiagram, stateDiagram-v2, or erDiagram as appropriate.
+Quote node labels and escape HTML in Mermaid source inside pre elements.
+Use SVG for custom spatial illustrations, not manually routed architecture boxes.

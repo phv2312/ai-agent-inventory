@@ -37,5 +37,7 @@ npm run build
 - **Chunk browser**: completed documents expose **View chunks** ordered by
   descending source page
 - **Chat**: SSE streaming with thought process (expanded by default)
+- **Global query**: Start a message with `/global` to review and approve a
+  research plan before the global agent runs
 - **Citations**: side-panel inspector via `GET /chunks/`
 - **Scope**: collection selection per conversation (localStorage), `@doc_name` mentions

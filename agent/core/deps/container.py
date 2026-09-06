@@ -11,9 +11,7 @@ from agent.core.textsplitters import (
 )
 from openai import AsyncAzureOpenAI
 
-from agent.core.rag.chats.deps import ChatDeps
-from agent.core.rag.chats.strategies.agentic import AgenticChatStrategy
-from agent.core.rag.chats.strategies.agentic.core import AgenticSettings
+from agent.core._agent import AgentDeps, AgentOrchestrator
 from agent.core.embeddings import IEmbeddingModel, SmallOpenAIEmbeddingModel
 from agent.core.extractors import (
     IExtractor,
@@ -168,7 +166,7 @@ class VectorDBProvider(
         )
 
 
-class AgenticStrategyProvider:
+class AgentProvider:
     def __init__(
         self,
         env: Env,
@@ -181,17 +179,14 @@ class AgenticStrategyProvider:
         self.embedding_provider = embedding_provider
         self.model = model
 
-    def get(self) -> AgenticChatStrategy:
-        return AgenticChatStrategy(
-            deps=ChatDeps(
+    def get(self) -> AgentOrchestrator:
+        return AgentOrchestrator(
+            deps=AgentDeps(
                 vectordb=self.vectordb_provider.get(VectorDBModel.MILVUS),
                 embedding_model=self.embedding_provider.get(
                     EmbeddingModel.AZURE_OPENAI
                 ),
-            ),
-            model=self.model,
-            settings=AgenticSettings(
-                model_name=self.env.OPENAI_CHAT_DEPLOYMENT_NAME,
+                model=self.model,
             ),
         )
 
@@ -237,8 +232,8 @@ class Container:
         )
 
     @cached_property
-    def agentic(self) -> AgenticStrategyProvider:
-        return AgenticStrategyProvider(
+    def agent(self) -> AgentProvider:
+        return AgentProvider(
             self.env,
             self.vectordbs,
             self.embeddings,

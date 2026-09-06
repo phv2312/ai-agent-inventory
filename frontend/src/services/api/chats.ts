@@ -5,6 +5,7 @@ import type {
     BlockOpenPayload,
 } from '../../types/contentBlocks';
 import { STREAM_EVENT } from '../../types/messages';
+import { toCamelCaseObject } from '../../utils/case';
 
 export interface ChatStreamPayload {
     conversationId: string;
@@ -13,6 +14,7 @@ export interface ChatStreamPayload {
     topK?: number;
     numHistoryInteractions?: number;
     systemPrompt?: string;
+    globalQuery?: boolean;
 }
 
 export interface ChatData {
@@ -29,6 +31,32 @@ export interface ErrorStreamData {
     code: string;
     message: string;
 }
+
+export interface PlanSection {
+    title: string;
+    purpose: string;
+}
+
+export interface AgentPlan {
+    query: string;
+    sections: PlanSection[];
+}
+
+export interface AgentInterruption {
+    id: string;
+    agent: string;
+    toolName: string;
+    plan: AgentPlan | null;
+    arguments: Record<string, unknown>;
+}
+
+export interface InterruptionData {
+    conversationId: string;
+    version: number;
+    interruptions: AgentInterruption[];
+}
+
+export type InterruptionDecision = 'approve' | 'revise' | 'cancel';
 
 export interface ChatStreamEvent {
     event: 'chat';
@@ -65,6 +93,20 @@ export interface ErrorStreamEvent {
     data: ErrorStreamData;
 }
 
+export interface InterruptionStreamEvent {
+    event: 'interruption';
+    data: InterruptionData;
+}
+
+export interface InterruptionResolvedStreamEvent {
+    event: 'interruption-resolved';
+    data: {
+        conversationId: string;
+        version: number;
+        status: 'cancelled';
+    };
+}
+
 export type SSEEvent =
     | ChatStreamEvent
     | ReasoningStreamEvent
@@ -72,7 +114,9 @@ export type SSEEvent =
     | BlockDeltaStreamEvent
     | BlockCloseStreamEvent
     | NameSuggestionStreamEvent
-    | ErrorStreamEvent;
+    | ErrorStreamEvent
+    | InterruptionStreamEvent
+    | InterruptionResolvedStreamEvent;
 
 const BLOCK_EVENTS = new Set<string>([
     STREAM_EVENT.BLOCK_OPEN,
@@ -90,6 +134,7 @@ export async function* streamChatResponse(
     formData.append('top_k', String(payload.topK ?? 10));
     formData.append('num_history_interactions', String(payload.numHistoryInteractions ?? 5));
     formData.append('web_search_enabled', 'false');
+    formData.append('global_query', String(payload.globalQuery ?? false));
     if (payload.systemPrompt) {
         formData.append('system_prompt', payload.systemPrompt);
     }
@@ -107,8 +152,60 @@ export async function* streamChatResponse(
         signal,
     });
 
+    yield* readSseResponse(response);
+}
+
+export async function getPendingInterruption(
+    conversationId: string,
+): Promise<InterruptionData | null> {
+    const response = await fetch(
+        `${BASE_URL}/api/v1/chats/${conversationId}/interruptions`,
+        { headers: { Accept: 'application/json' } },
+    );
+    if (response.status === 404) return null;
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(await response.text());
+    }
+    return toCamelCaseObject(await response.json()) as InterruptionData;
+}
+
+export async function* respondToInterruption(
+    interruption: InterruptionData,
+    decision: InterruptionDecision,
+    feedback: string,
+    signal?: AbortSignal,
+): AsyncGenerator<SSEEvent, void, unknown> {
+    const interruptionPath =
+        decision === 'cancel'
+            ? `${interruption.conversationId}/interruptions`
+            : `${interruption.conversationId}/interruptions/resume`;
+    const response = await fetch(
+        `${BASE_URL}/api/v1/chats/${interruptionPath}`,
+        {
+            method: 'POST',
+            headers: {
+                Accept: 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                version: interruption.version,
+                interruption_ids: interruption.interruptions.map((item) => item.id),
+                decision,
+                feedback: decision === 'revise' ? feedback : null,
+            }),
+            signal,
+        },
+    );
+    yield* readSseResponse(response);
+}
+
+async function* readSseResponse(
+    response: Response,
+): AsyncGenerator<SSEEvent, void, unknown> {
+    if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || `HTTP error! status: ${response.status}`);
     }
 
     const reader = response.body?.getReader();
@@ -137,6 +234,15 @@ export async function* streamChatResponse(
                 || currentEvent === STREAM_EVENT.ERROR
             ) {
                 return { event: currentEvent, data } as SSEEvent;
+            }
+            if (
+                currentEvent === STREAM_EVENT.INTERRUPTION
+                || currentEvent === STREAM_EVENT.INTERRUPTION_RESOLVED
+            ) {
+                return {
+                    event: currentEvent,
+                    data: toCamelCaseObject(data),
+                } as SSEEvent;
             }
         } catch (e) {
             console.warn('Failed to parse SSE data:', dataStr.slice(0, 200));

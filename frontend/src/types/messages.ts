@@ -9,6 +9,8 @@ export const STREAM_EVENT = {
     BLOCK_OPEN: 'block-open',
     BLOCK_DELTA: 'block-delta',
     BLOCK_CLOSE: 'block-close',
+    INTERRUPTION: 'interruption',
+    INTERRUPTION_RESOLVED: 'interruption-resolved',
 } as const;
 
 export type StreamEventName = (typeof STREAM_EVENT)[keyof typeof STREAM_EVENT];

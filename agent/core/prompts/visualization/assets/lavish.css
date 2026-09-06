@@ -1,0 +1,50 @@
+/*
+MIT License
+
+Copyright (c) 2026 Kun Chen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+/* Lavish adaptation; upstream MIT notice is embedded below. */
+:root { color-scheme: dark; --lv-bg:#0f1115; --lv-panel:#11141a; --lv-elevated:#1c212b; --lv-fg:#f7f3ea; --lv-muted:#b9c0cf; --lv-border:#303745; --lv-accent:#f4c95d; --lv-accent-hover:#ffd877; --lv-accent-ink:#17130a; --lv-danger:#f06464; --lv-sans:Geist,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; --lv-serif:"EB Garamond","Iowan Old Style",Georgia,serif; --lv-mono:"Geist Mono",ui-monospace,Menlo,monospace; }
+*,*::before,*::after { box-sizing:border-box; }
+body { margin:0; padding:24px; background:var(--lv-bg); color:var(--lv-fg); font:16px/1.5 var(--lv-sans); }
+main { max-width:1120px; margin:auto; }
+h1,h2 { font-family:var(--lv-serif); font-weight:500; line-height:1.15; }
+h1 { font-size:clamp(32px,5vw,48px); } h2 { font-size:32px; } h3 { font-size:18px; }
+h1,h2,h3,p,figure { margin:0; } p+h2,h2+p,h3+p { margin-top:8px; }
+p,h1,h2,h3,label,output,figcaption { overflow-wrap:anywhere; }
+.lv-panel { padding:24px; border:1px solid var(--lv-border); border-radius:14px; background:var(--lv-panel); min-width:0; }
+.lv-card { padding:20px; border:1px solid var(--lv-border); border-radius:12px; background:var(--lv-elevated); min-width:0; }
+.lv-stack { display:grid; gap:20px; } .lv-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:16px; }
+.lv-grid>*,.lv-row>* { min-width:0; } .lv-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.lv-muted { color:var(--lv-muted); } .lv-eyebrow { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--lv-muted); }
+.lv-value { font:600 clamp(24px,4vw,36px)/1.3 var(--lv-mono); font-variant-numeric:tabular-nums; }
+.lv-pill { display:inline-flex; padding:4px 10px; border:1px solid var(--lv-border); border-radius:999px; color:var(--lv-muted); font-size:12px; max-width:100%; overflow-wrap:anywhere; }
+.lv-button { border:0; border-radius:10px; padding:10px 16px; background:var(--lv-accent); color:var(--lv-accent-ink); font:700 14px var(--lv-sans); cursor:pointer; }
+.lv-button:hover:not(:disabled) { background:var(--lv-accent-hover); } .lv-button:disabled { opacity:.55; cursor:not-allowed; }
+.lv-label { display:grid; gap:8px; } .lv-input { min-width:0; width:100%; border:1px solid var(--lv-border); border-radius:12px; background:var(--lv-bg); color:var(--lv-fg); font:inherit; padding:10px; }
+.lv-toggle { appearance:none; width:42px; height:24px; border-radius:999px; border:1px solid var(--lv-border); background:var(--lv-bg); position:relative; cursor:pointer; flex-shrink:0; }
+.lv-toggle::after { content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; border-radius:50%; background:var(--lv-muted); }
+.lv-toggle:checked { background:var(--lv-accent); } .lv-toggle:checked::after { transform:translateX(18px); background:var(--lv-accent-ink); }
+:focus-visible { outline:2px solid var(--lv-accent); outline-offset:3px; }
+.lv-chart { position:relative; height:300px; min-width:0; margin-top:16px; }
+svg,img,canvas { max-width:100%; } svg { height:auto; } pre { overflow:auto; } .mermaid { white-space:pre-wrap; }
+@media(max-width:480px) { body { padding:12px; } .lv-panel,.lv-card { padding:16px; } }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }

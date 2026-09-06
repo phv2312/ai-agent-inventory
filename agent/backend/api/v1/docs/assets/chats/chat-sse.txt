@@ -1,6 +1,9 @@
 event: reasoning
 data: [{"idx": 0, "role": "assistant", "content": "Searching policy..."}]
 
+event: interruption
+data: {"conversation_id":"conversation-id","version":1,"interruptions":[{"id":"call-id","agent":"global_agent","tool_name":"submit_agent_plan","plan":{"query":"Compare the policies","sections":[{"title":"Coverage","purpose":"Compare the covered requirements"}]},"arguments":{}}]}
+
 event: chat
 data: [{"idx": 0, "role": "assistant", "content": "The refund policy allows " }]
 

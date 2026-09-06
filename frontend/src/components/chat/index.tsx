@@ -3,9 +3,15 @@ import { Header } from './Header';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { EmptyChatState } from './EmptyChatState';
-import { useAppSelector } from '../../hooks/redux';
+import { InterruptionDialog } from './InterruptionDialog';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import {
+    clearPendingInterruption,
+    fetchPendingInterruption,
+} from '../../store/chat.slice';
 
 export function Chat() {
+    const dispatch = useAppDispatch();
     const { selectedConversationId } = useAppSelector((state) => state.conversation);
     const { messages, isStreaming, isLoadingMessages } = useAppSelector(
         (state) => state.chat,
@@ -14,7 +20,12 @@ export function Chat() {
 
     useEffect(() => {
         setInputText('');
-    }, [selectedConversationId]);
+        if (selectedConversationId) {
+            void dispatch(fetchPendingInterruption(selectedConversationId));
+        } else {
+            dispatch(clearPendingInterruption());
+        }
+    }, [dispatch, selectedConversationId]);
 
     const showEmpty =
         Boolean(selectedConversationId) &&
@@ -40,6 +51,7 @@ export function Chat() {
                     />
                 </>
             )}
+            <InterruptionDialog />
         </main>
     );
 }

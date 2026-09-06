@@ -12,8 +12,8 @@ class Descriptions:
     )
 
     CHAT_SSE = (
-        "Agentic chat over Server-Sent Events. Stream emits lightweight "
-        "`chat`, `reasoning`, and optional tail events only. "
+        "Agentic chat over Server-Sent Events. Stream emits content blocks, "
+        "`reasoning`, an optional review `interruption`, and tail events. "
         "Citation mapping is persisted on the assistant message after the stream completes."
     )
 

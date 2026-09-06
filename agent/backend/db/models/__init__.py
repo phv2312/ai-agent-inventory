@@ -1,8 +1,9 @@
 from enum import StrEnum
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
@@ -44,6 +45,51 @@ class ConversationORM(Base):
         cascade="all, delete-orphan",
         order_by="MessageORM.created_at",
     )
+    pending_run: Mapped["PendingAgentRunORM | None"] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
+
+
+class PendingAgentRunORM(Base):
+    LEGACY_STATUS_PENDING = "pending"
+
+    __tablename__ = "pending_agent_runs"
+
+    conversation_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    user_message_id: Mapped[str] = mapped_column(String(36))
+    state_json: Mapped[str] = mapped_column(Text)
+    request_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
+    interruptions: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    # Keep these unused columns compatible with existing local databases.
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=LEGACY_STATUS_PENDING,
+    )
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+        onupdate=_utcnow,
+    )
+
+    conversation: Mapped[ConversationORM] = relationship(
+        back_populates="pending_run",
+    )
 
 
 class MessageORM(Base):
@@ -57,7 +103,10 @@ class MessageORM(Base):
     )
     role: Mapped[MessageRole] = mapped_column(String(20))
     content: Mapped[str] = mapped_column(Text)
-    content_blocks: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    content_blocks: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON,
+        nullable=True,
+    )
     mapping_evidence: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
