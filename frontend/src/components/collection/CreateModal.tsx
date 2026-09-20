@@ -29,7 +29,7 @@ export function CreateModal() {
                 description: description.trim() || undefined,
             };
 
-            dispatch(createNewCollection(newCollectionRequest));
+            await dispatch(createNewCollection(newCollectionRequest)).unwrap();
 
             setName('');
             setDescription('');
@@ -78,6 +78,7 @@ export function CreateModal() {
                         </label>
                         <input
                             id="collection-name"
+                            data-testid="collection-name-input"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -97,6 +98,7 @@ export function CreateModal() {
                         </label>
                         <textarea
                             id="collection-description"
+                            data-testid="collection-description-input"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Brief description of what this collection contains..."
@@ -117,6 +119,7 @@ export function CreateModal() {
                         </button>
                         <button
                             type="submit"
+                            data-testid="create-collection-submit"
                             disabled={!name.trim() || isLoading}
                             className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                         >

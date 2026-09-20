@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from agent.backend.api.exc.http import AppError
@@ -19,6 +20,7 @@ from agent.backend.api.container import Repositories
 from agent.backend.repos.protocols import CollectionRecord, ReferenceRecord
 
 router = APIRouter()
+log = structlog.get_logger(__name__)
 
 
 def _to_response(record: object) -> CollectionResponse:
@@ -40,6 +42,7 @@ async def create_collection(
     repos: Annotated[Repositories, Depends(get_repos)],
 ) -> CollectionResponse:
     record = await repos.collections.create(body.name, body.description)
+    log.info("collection_created", collection_id=record.id)
     return _to_response(record)
 
 
@@ -65,6 +68,7 @@ async def get_collection(
 ) -> CollectionResponse:
     record = await repos.collections.get(collection_id)
     if record is None:
+        log.warning("collection_not_found", collection_id=collection_id)
         raise AppError("NotFound", f"Collection {collection_id} not found", 404)
     return _to_response(record)
 
@@ -91,8 +95,14 @@ async def list_collection_references(
 ) -> list[ReferenceResponse]:
     record = await repos.collections.get(collection_id)
     if record is None:
+        log.warning("collection_not_found", collection_id=collection_id)
         raise AppError("NotFound", f"Collection {collection_id} not found", 404)
     refs = await repos.references.list_by_collection(collection_id)
+    log.info(
+        "collection_references_listed",
+        collection_id=collection_id,
+        reference_count=len(refs),
+    )
     return [_reference_response(r) for r in refs]
 
 
@@ -108,7 +118,9 @@ async def update_collection(
         description=body.description,
     )
     if record is None:
+        log.warning("collection_not_found", collection_id=collection_id)
         raise AppError("NotFound", f"Collection {collection_id} not found", 404)
+    log.info("collection_updated", collection_id=collection_id)
     return _to_response(record)
 
 
@@ -121,5 +133,7 @@ async def delete_collection(
 ) -> Response:
     deleted = await repos.collections.delete(collection_id)
     if not deleted:
+        log.warning("collection_not_found", collection_id=collection_id)
         raise AppError("NotFound", f"Collection {collection_id} not found", 404)
+    log.info("collection_deleted", collection_id=collection_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,5 +1,7 @@
 from typing import Annotated
+import uuid
 
+import structlog
 from fastapi import APIRouter, Depends, Response, status
 
 from agent.backend.api.exc.http import AppError
@@ -11,13 +13,13 @@ from agent.backend.api.v1.payload.conversations import (
     ConversationUpdate,
     MessageResponse,
 )
-import uuid
 
 from agent.backend.api.container import Repositories
 from agent.backend.db.models import MessageRole
 from agent.backend.repos.protocols import ConversationRecord, MessageRecord
 
 router = APIRouter()
+log = structlog.get_logger(__name__)
 
 
 def _conversation_response(record: ConversationRecord) -> ConversationResponse:
@@ -63,6 +65,7 @@ async def create_conversation(
     repos: Annotated[Repositories, Depends(get_repos)],
 ) -> ConversationResponse:
     record = await repos.conversations.create(body.title)
+    log.info("conversation_created", conversation_id=record.id)
     return _conversation_response(record)
 
 
@@ -81,6 +84,7 @@ async def get_conversation(
 ) -> ConversationResponse:
     record = await repos.conversations.get(conversation_id)
     if record is None:
+        log.warning("conversation_not_found", conversation_id=conversation_id)
         raise AppError("NotFound", f"Conversation {conversation_id} not found", 404)
     return _conversation_response(record)
 
@@ -93,7 +97,9 @@ async def update_conversation(
 ) -> ConversationResponse:
     record = await repos.conversations.update_title(conversation_id, body.title)
     if record is None:
+        log.warning("conversation_not_found", conversation_id=conversation_id)
         raise AppError("NotFound", f"Conversation {conversation_id} not found", 404)
+    log.info("conversation_updated", conversation_id=conversation_id)
     return _conversation_response(record)
 
 
@@ -108,7 +114,9 @@ async def delete_conversation(
 ) -> Response:
     deleted = await repos.conversations.delete(conversation_id)
     if not deleted:
+        log.warning("conversation_not_found", conversation_id=conversation_id)
         raise AppError("NotFound", f"Conversation {conversation_id} not found", 404)
+    log.info("conversation_deleted", conversation_id=conversation_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -119,6 +127,12 @@ async def list_messages(
 ) -> list[MessageResponse]:
     record = await repos.conversations.get(conversation_id)
     if record is None:
+        log.warning("conversation_not_found", conversation_id=conversation_id)
         raise AppError("NotFound", f"Conversation {conversation_id} not found", 404)
     messages = await repos.messages.list_by_conversation(conversation_id)
+    log.info(
+        "conversation_messages_listed",
+        conversation_id=conversation_id,
+        message_count=len(messages),
+    )
     return [_message_response(m) for m in messages]

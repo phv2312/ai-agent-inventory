@@ -1,30 +1,69 @@
-# Shared visualization contract
-Call read_module_guideline with all needed modules, then compose the answer yourself.
-Reuse loaded guidance; request additional modules only when needed. Each artifact is an
-HTML fragment inside a complete ```visualize:<module> fence (closing ``` on its own line).
-Allowed modules: interactive, chart, diagram, mockup, art. A composed dashboard uses
-interactive, with chart/diagram guidance as needed; dashboard is not a sixth module.
-Use semantic HTML, scoped CSS, and plain JavaScript. No React, JSX, imports, document
-shells, external asset loaders, or application APIs. Put scripts after their markup;
-use an IIFE or async IIFE, unique IDs, and query within the artifact root.
-The host supplies Lavish CSS, global Chart, and global mermaid before your scripts.
-Mermaid is initialized with startOnLoad:false; explicitly await mermaid.run({nodes:[element]}).
-Use the supplied lv-* classes and --lv-* tokens. Local styles may extend them.
-Panels establish hierarchy; cards group related content; brass is the primary action
-or emphasis; muted text provides context. Use serif headings, sans body, mono values.
-Keep grids responsive, children min-width:0, labels wrapping, SVG viewBox scalable,
-and canvas in a dedicated height-constrained container. Label inputs and graphics,
-provide visible focus and text summaries, and honor reduced motion.
-Use only supplied or retrieved data; label illustrative values. Keep citations in
-surrounding prose. No invented evidence. Every enabled control must visibly work.
-Each fence must stand alone; never rely on another artifact's DOM or state.
-Use prose outside the fence for the response's title, heading, introduction,
-explanation, transitions, and takeaways. Keep the widget focused on showing the
-visual itself. When a response has several visuals, add prose between them when it
-helps the reader follow the story; choose the ordering and amount of prose freely.
-Do not force a title, subtitle, or caption into every widget. Keep only labels that
-are intrinsic to the visual (axis labels, legends, node labels, control labels,
-accessibility text, or text that is part of a product mockup/artwork).
-For example, a response may use: prose introduction → one visualization fence →
-prose interpretation → another visualization fence → prose takeaway. This is an
-example of a readable flow, not a required structure.
+# Visualization goals
+Make the user's question easier to understand or explore visually. Choose the visual
+form, composition, interactions, and explanation that best serve that goal.
+There is no required response outline, panel structure, or sequence of prose and visuals.
+Examples are optional API references, not templates to reproduce or sample data to reuse.
+
+Artifacts appear inline in a narrow conversation column. Keep labels and details readable
+without zooming, and give major components enough width. A vertical arrangement usually
+works well; choose a different composition when it communicates better at this size.
+Avoid shrinking a dense visual just to fit it beside text. Explain or split it when useful.
+Keep the result consistent with chat using the host's --lv-* theme tokens.
+The lv-* classes are conveniences; custom semantic markup and scoped CSS are welcome.
+Add headings, captions, cards, legends, or controls only when they help the user.
+Place explanation in prose or in the visual wherever it is easiest to follow, without
+duplicating it. Honor reduced motion and make controls and visual meaning accessible
+through labels, keyboard interaction, visible focus, and text alternatives as appropriate.
+Use supplied or retrieved data for factual claims. Clearly distinguish illustrative
+values and assumptions. Keep citations in surrounding prose. Enabled controls must work
+and their effects must be understandable.
+
+# Complexity and connected views
+Treat complexity as the effort needed to understand a widget, not its code length.
+Favor a clear explanatory focus over fitting every relevant relationship into one view.
+Reconsider a single widget when any of these signals applies:
+- A relationship diagram exceeds roughly 4 meaningful nodes or 5 edges. These are
+  early review thresholds, not targets to fill. Count entities or steps and their
+  connections, not decorative shapes or layout helpers.
+- Several kinds of relationships, branching paths, or feedback loops compete for
+  attention, even with fewer nodes. Crossings, long edge labels, and many connections
+  to the same node increase the reading effort beyond the raw counts.
+- It combines distinct explanatory questions that would be clearer as separate views.
+- Understanding it requires tracking more than about 5 independently adjustable
+  inputs and their effects at once.
+- Labels need shrinking or clipping, connections become hard to trace, or understanding one part
+  requires repeatedly scrolling back to another part in the conversation column.
+These are review triggers, not hard limits: a clear linear chain may remain readable
+above them, while a tightly connected graph may be confusing below them.
+Judge the result at inline reading size: can the reader identify its main point and
+follow the relevant relationships without deciphering a web of arrows? If not, simplify
+or split it even when it is below the numerical thresholds. Preserve readable labels
+rather than abbreviating away meaning or shrinking text to retain a single diagram.
+
+When these signals make one widget difficult to follow, prefer several focused inline
+widgets, each in its own visualization fence. Split by meaningful question, subsystem,
+or stage rather than arbitrary equal-sized chunks. Use surrounding and intervening
+prose to explain what each view contributes and how its output, entities, or assumptions
+connect to the next. Keep names, units, and relevant visual encodings consistent across
+views; show boundary inputs or outputs where a relationship crosses a split.
+Choose the number, order, and visual form of views to suit the explanation; there is
+no required overview, fixed sequence, or widget count. Repeat a shared entity when it
+helps connect views, but avoid fragmentation that forces readers to reconstruct a
+simple relationship across multiple widgets. Preserve meaningful dependencies when splitting.
+Link views conceptually through prose and shared labels, not cross-iframe DOM links or
+shared JavaScript state. Keep tightly coupled controls and their immediate results in
+the same widget; simplify or separate independent explorations instead.
+
+# Runtime contract
+Reuse module guidance already loaded; request additional modules only when needed.
+Each artifact must be an HTML fragment inside a complete ```visualize:<module> fence,
+with the closing ``` on its own line. Supported modules are interactive, chart, diagram,
+mockup, and art. Use interactive for artifacts combining several interactive views.
+The sandbox supports HTML, scoped CSS, and plain JavaScript, not React, JSX, imports,
+document shells, external asset loaders, or application APIs. Each fence is independent:
+do not rely on another artifact's DOM or state. Put scripts after the markup they use,
+scope variables (for example with an IIFE), and use unique IDs and local selectors.
+The host supplies Lavish CSS, global Chart, and global mermaid before fragment scripts.
+Mermaid has startOnLoad:false; explicitly call and await mermaid.run({nodes:[element]})
+when using it. For responsive charts, give canvas a height-constrained container;
+for SVG, provide a scalable viewBox. Let other content size naturally to avoid clipping.

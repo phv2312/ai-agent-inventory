@@ -12,7 +12,7 @@ from agent.backend.chatstream.models import (
     is_untitled_conversation,
 )
 from agent.core.deps.container import Container
-from agent.core._agent import RunInput
+from agent.core._agent import InterruptionDecision, RunInput
 from agent.core._agent.parser import (
     ChatRunStatus,
     ChatStreamState,
@@ -21,7 +21,6 @@ from agent.core._agent.parser import (
     ToolProgressDelta,
 )
 from agent.core.models.content_blocks import ContentBlock
-from agent.core.models.messages import AssistantMessage, Message, Messages, UserMessage
 
 
 class ChatStreamService:
@@ -30,28 +29,10 @@ class ChatStreamService:
         self.last_state = ChatStreamState()
 
     async def stream(
-        self,
-        *,
-        message: str,
-        file_ids: list[str],
-        history: list[UserMessage | AssistantMessage],
-        top_k: int,
-        web_search_enabled: bool,
-        global_query: bool = False,
-        system_prompt: str | None = None,
+        self, *, snapshot: RunInput
     ) -> AsyncGenerator[ServerSentEvent, None]:
         orchestrator = self.agent_container.agent.get()
         try:
-            history_messages: list[Message] = list(history)
-            snapshot = RunInput(
-                query=message,
-                file_ids=file_ids,
-                history=Messages(root=history_messages),
-                top_k=top_k,
-                memory_md_content=system_prompt or "",
-                web_search_enabled=web_search_enabled,
-                global_query=global_query,
-            )
             result = await orchestrator.stream(snapshot)
             async for event in self._parse_result(result):
                 yield event
@@ -64,34 +45,17 @@ class ChatStreamService:
         *,
         snapshot: RunInput,
         state_json: str,
-        decision: str,
+        decision: InterruptionDecision,
         feedback: str = "",
     ) -> AsyncGenerator[ServerSentEvent, None]:
         orchestrator = self.agent_container.agent.get()
         try:
-            agent, run_state = await orchestrator.load_run_state(snapshot, state_json)
-            interruptions = run_state.get_interruptions()
-            if not interruptions:
-                raise ValueError("The saved run has no pending interruptions")
-            if decision == "approve":
-                for interruption in interruptions:
-                    run_state.approve(interruption)
-            elif decision == "revise":
-                rejection_message = (
-                    "The human reviewer requested these plan changes:\n"
-                    f"{feedback}\n\n"
-                    "Revise the plan and submit the complete replacement plan for "
-                    "approval. Do not execute the plan or write the final answer."
-                )
-                for interruption in interruptions:
-                    run_state.reject(
-                        interruption,
-                        rejection_message=rejection_message,
-                    )
-            else:
-                raise ValueError(f"Unsupported interruption decision: {decision}")
-
-            result = orchestrator.resume(agent, run_state)
+            result = await orchestrator.resume(
+                inp=snapshot,
+                state_string=state_json,
+                decision=decision,
+                feedback=feedback,
+            )
             async for event in self._parse_result(result):
                 yield event
         except Exception as exc:

@@ -137,7 +137,7 @@ class Milvus:
     def create_collection(self) -> None:
         if self.client.has_collection(self.collection_name):
             logger.info(
-                "Collection already exists",
+                "vector_collection_already_exists",
                 collection_name=self.collection_name,
             )
         else:
@@ -148,12 +148,12 @@ class Milvus:
                 consistency_level=self.config.consistency,
             )
             logger.info(
-                "Collection created",
+                "vector_collection_created",
                 collection_name=self.collection_name,
             )
 
         self.client.load_collection(self.collection_name)
-        logger.info("Collection loaded", collection_name=self.collection_name)
+        logger.info("vector_collection_loaded", collection_name=self.collection_name)
 
     async def add(
         self, chunks: Sequence[Chunk], embeddings: Sequence[BaseEmbedding]
@@ -173,7 +173,7 @@ class Milvus:
                 ],
             )
         logger.info(
-            "Added chunks to collection",
+            "vector_collection_chunks_added",
             chunk_count=len(chunks),
             collection_name=self.collection_name,
         )
@@ -251,7 +251,7 @@ class Milvus:
         if filtered_dict:
             exprs = [f"{key} in {str(value)}" for key, value in filtered_dict.items()]
             filter_expr = " and ".join(exprs)
-            logger.info("Filtering search", filter_expr=filter_expr)
+            logger.info("vector_search_filtered", filter_expr=filter_expr)
 
         # semantic search
         searches: list[list[RetrievedRecord]] = await self.async_client.search(
@@ -281,7 +281,7 @@ class Milvus:
             filter=filter_expr,
         )
         logger.info(
-            "Deleted chunks from collection",
+            "vector_collection_chunks_deleted",
             collection_name=self.collection_name,
             filter_expr=filter_expr,
         )

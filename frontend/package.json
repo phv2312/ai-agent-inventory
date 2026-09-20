@@ -8,6 +8,7 @@
     "build:widget-runtime": "vite build --config vite.widget-runtime.config.ts",
     "prebuild": "npm run build:widget-runtime",
     "build": "tsc -b && vite build",
+    "test:e2e": "playwright test -c playwright.config.ts",
     "test:widget-runtime": "vitest run --config vitest.widget-runtime.config.ts",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/cli": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^24.10.1",

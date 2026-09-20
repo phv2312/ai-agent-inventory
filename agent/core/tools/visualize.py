@@ -25,10 +25,10 @@ VISUALIZATION_MODULES: tuple[VisualizeModule, ...] = (
 
 
 MODULE_TEMPLATES: dict[VisualizeModule, tuple[str, ...]] = {
-    "interactive": ("layout", "controls"),
-    "chart": ("layout", "chart"),
-    "diagram": ("layout", "mermaid"),
-    "mockup": ("layout", "controls"),
+    "interactive": ("controls",),
+    "chart": ("chart",),
+    "diagram": ("mermaid",),
+    "mockup": ("controls",),
     "art": ("svg",),
 }
 

@@ -73,10 +73,12 @@ export function ContentBlockList({
                                 block.widgetCode ??
                                 ''
                             }
-                            title={undefined}
-                            loadingMessages={[]}
+                            title={block.title ?? undefined}
+                            loadingMessages={block.loadingMessages ?? []}
                             streamActive={streamActive}
-                            incomplete={false}
+                            incomplete={
+                                block.status === WIDGET_BLOCK_STATUS.ERROR
+                            }
                         />
                     );
                 }

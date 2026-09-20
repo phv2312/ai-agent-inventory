@@ -78,6 +78,7 @@ export function AppSidebar() {
                             <li key={item.path}>
                                 <Link
                                     to={item.path}
+                                    data-testid={`nav-${item.label.toLowerCase()}`}
                                     onClick={() => {
                                         if (isMobile) close();
                                     }}

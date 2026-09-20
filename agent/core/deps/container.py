@@ -21,6 +21,7 @@ from agent.core.storages.vectordb import Milvus
 from agent.core.env import Env
 from agent.core.storages.files.impl.local import LocalFileStorage
 from agent.core.storages.files.interface import IFileStorage
+from agent.core.tools.summary.tools import ArtifactRepository
 
 from .models import (
     EmbeddingModel,
@@ -173,11 +174,13 @@ class AgentProvider:
         vectordb_provider: VectorDBProvider,
         embedding_provider: EmbeddingProvider,
         model: OpenAIResponsesModel,
+        artifact_repo: ArtifactRepository,
     ) -> None:
         self.env = env
         self.vectordb_provider = vectordb_provider
         self.embedding_provider = embedding_provider
         self.model = model
+        self.artifact_repo = artifact_repo
 
     def get(self) -> AgentOrchestrator:
         return AgentOrchestrator(
@@ -187,6 +190,7 @@ class AgentProvider:
                     EmbeddingModel.AZURE_OPENAI
                 ),
                 model=self.model,
+                artifact_repo=self.artifact_repo,
             ),
         )
 
@@ -196,8 +200,9 @@ class Container:
         self, env: Env | None = None, storage: IFileStorage | None = None
     ) -> None:
         self.env = env or Env()
-        set_tracing_disabled(bool(self.env.OPENAI_AGENTS_DISABLE_TRACING))
         self.storage = storage or LocalFileStorage(self.env.DATA_DIR)
+
+        set_tracing_disabled(bool(self.env.OPENAI_AGENTS_DISABLE_TRACING))
 
     @cached_property
     def embeddings(self) -> EmbeddingProvider:
@@ -238,11 +243,21 @@ class Container:
             self.vectordbs,
             self.embeddings,
             self.model,
+            self.artifact_repo,
         )
 
     @cached_property
     def programs(self) -> ProgramsProvider:
         return ProgramsProvider(self.env, self.model)
+
+    @cached_property
+    def artifact_repo(self) -> ArtifactRepository:
+        from agent.core.tools.summary import SummaryPaths
+
+        _DEFFAULT_ROOT_DIR = self.env.DATA_DIR / "summary"
+        _DEFFAULT_ROOT_DIR.mkdir(exist_ok=True)
+
+        return ArtifactRepository(SummaryPaths(root=_DEFFAULT_ROOT_DIR))
 
 
 container = Container()

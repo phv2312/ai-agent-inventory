@@ -5,6 +5,10 @@ export default defineConfig({
         environment: 'node',
         environmentMatchGlobs: [
             ['src/widget-runtime/mermaid.test.ts', 'jsdom'],
+            [
+                'src/components/chat/inlineVisualization/InlineVisualizationFrame.test.ts',
+                'jsdom',
+            ],
         ],
         include: [
             'src/widget-runtime/**/*.test.ts',
