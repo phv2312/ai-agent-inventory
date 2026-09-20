@@ -56,3 +56,11 @@ agent directly. The bundled frontend sets this field when a message begins with
 
 New chat requests for that conversation return HTTP 409 until the pending run
 is completed or cancelled.
+
+Plan review history is available at `GET /api/v1/chats/{id}/interruptions/history`.
+Each record includes the original plan, `user_message_id`, `version`, `decision`,
+and `feedback`. Decisions are committed before resuming the agent; a second
+response to the same plan returns HTTP 409. The pending endpoint only returns
+unanswered plans. Completed, cancelled, and failed runs retain their review
+history. If a resumed stream fails or disconnects, its pending version is retired;
+a revised plan uses a new version and remains available for review.

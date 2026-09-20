@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 from agents.models.openai_responses import OpenAIResponsesModel
 from pydantic import BaseModel, Field
@@ -6,6 +7,9 @@ from pydantic import BaseModel, Field
 from agent.core.embeddings.interface import IEmbeddingModel
 from agent.core.models.messages import Messages
 from agent.core.storages.vectordb.milvus import Milvus
+from agent.core.tools.summary import ArtifactRepository
+
+InterruptionDecision = Literal["approve", "revise"]
 
 
 class RunInput(BaseModel):
@@ -23,3 +27,4 @@ class AgentDeps:
     vectordb: Milvus
     embedding_model: IEmbeddingModel
     model: OpenAIResponsesModel
+    artifact_repo: ArtifactRepository

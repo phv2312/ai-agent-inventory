@@ -7,6 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from agent.backend.api.container import ApiContainer
 from agent.backend.api.exc.http import register_exception_handlers
 from agent.backend.api.v1.api import api_router
+from agent.core.logger import configure_logger
+
+
+configure_logger()
 
 
 def create_app(container: ApiContainer | None = None) -> FastAPI:

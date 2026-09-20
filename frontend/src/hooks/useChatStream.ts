@@ -22,6 +22,7 @@ import {
     clearPendingInterruption,
     startResolvingInterruption,
     finishResolvingInterruption,
+    fetchPendingInterruption,
     setInterruptionError,
 } from '../store/chat.slice';
 import { patchConversationTitle } from '../store/conversation.slice';
@@ -267,6 +268,7 @@ export function useChatStream(): UseChatStream {
             } finally {
                 dispatch(stopStreaming());
                 dispatch(finishResolvingInterruption());
+                void dispatch(fetchPendingInterruption(selectedConversationId));
                 abortRef.current = null;
             }
         },

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -49,7 +49,7 @@ async def init_db(engine: AsyncEngine) -> None:
 @asynccontextmanager
 async def session_scope(
     factory: async_sessionmaker[AsyncSession],
-) -> AsyncIterator[AsyncSession]:
+) -> AsyncGenerator[AsyncSession, None]:
     async with factory() as session:
         try:
             yield session

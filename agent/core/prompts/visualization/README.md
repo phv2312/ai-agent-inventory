@@ -3,6 +3,9 @@
 `read_module_guideline(modules) -> str` remains the agent tool. `shared.jinja2`
 is rendered once, followed by unique module guides and unique templates in request
 order. `MODULE_TEMPLATES` in `agent/core/tools/visualize.py` declares composition.
+Guidance describes communication goals separately from the required sandbox contract.
+Included snippets are optional API examples, not prescribed layouts. The generic
+layout example is retained for reference but is not automatically supplied to the agent.
 Composable snippets in `templates/` intentionally use the `.html` extension because
 they are HTML fragments rendered directly inside visualization fences; the Jinja
 loader resolves that extension explicitly.

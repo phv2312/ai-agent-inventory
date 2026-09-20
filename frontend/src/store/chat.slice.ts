@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { getMessagesByConversation } from '../services/api/conversation';
 import type { InterruptionData } from '../services/api/chats';
-import { getPendingInterruption } from '../services/api/chats';
+import { getPendingInterruption, getInterruptionHistory } from '../services/api/chats';
 import type {
     BlockClosePayload,
     BlockDeltaPayload,
@@ -40,6 +40,7 @@ export const fetchPendingInterruption = createAsyncThunk(
             return {
                 conversationId,
                 interruption: await getPendingInterruption(conversationId),
+                history: await getInterruptionHistory(conversationId),
             };
         } catch (error) {
             return rejectWithValue(
@@ -59,6 +60,7 @@ interface ChatState {
     error: string | null;
     reasoningExpanded: boolean;
     streamingUsesBlocks: boolean;
+    interruptionHistory: InterruptionData[];
     pendingInterruption: InterruptionData | null;
     pendingInterruptionConversationId: string | null;
     isResolvingInterruption: boolean;
@@ -73,6 +75,7 @@ const initialState: ChatState = {
     error: null,
     reasoningExpanded: true,
     streamingUsesBlocks: false,
+    interruptionHistory: [],
     pendingInterruption: null,
     pendingInterruptionConversationId: null,
     isResolvingInterruption: false,
@@ -90,6 +93,7 @@ export const chatSlice = createSlice({
     reducers: {
         clearMessages(state) {
             state.messages = [];
+            state.interruptionHistory = [];
             state.streamingMessageIdx = null;
             state.error = null;
             state.isLoadingMessages = false;
@@ -231,6 +235,7 @@ export const chatSlice = createSlice({
                     state.pendingInterruption?.conversationId !== action.meta.arg
                 ) {
                     state.pendingInterruption = null;
+                    state.interruptionHistory = [];
                 }
                 state.pendingInterruptionConversationId = action.meta.arg;
                 state.interruptionError = null;
@@ -243,6 +248,7 @@ export const chatSlice = createSlice({
                     return;
                 }
                 state.pendingInterruption = action.payload.interruption;
+                state.interruptionHistory = action.payload.history;
             })
             .addCase(fetchPendingInterruption.rejected, (state, action) => {
                 if (state.pendingInterruptionConversationId !== action.meta.arg) {

@@ -17,9 +17,14 @@ from agent.core.models.messages import Message, Messages, UserMessage
 from agent.core.prompts.core import PromptsFactory
 from agent.core.storages.config import AnchorFields
 from agent.core.storages.vectordb.milvus import Milvus
-from agent.core.tools import build_search_tool, build_visualize_tool, think_tool
+from agent.core.tools import (
+    build_search_tool,
+    build_visualize_tool,
+    think_tool,
+)
+from agent.core.tools.summary.tools import ArtifactRepository
 
-from .models import AgentDeps, RunInput
+from .models import AgentDeps, InterruptionDecision, RunInput
 
 
 @dataclass
@@ -32,32 +37,43 @@ class AgentFactory:
         "Handle global queries when user explicitly requires in query, via /global pattern"
     )
     GLOBAL_INSTRUCTION: Final[str] = """
-## Review-gated workflow
+You are the global research specialist.
 
-You are the global research specialist. Before searching, reflecting,
-visualizing, or answering, create a complete answer outline and call
-`submit_agent_plan`. Do not describe the plan in plain text and do not use any
-other tool before the plan is approved.
+- First use the available research tools to gather the evidence needed to assess the request.
+For a straightforward, bounded question, answer directly from that evidence.
 
-If the plan tool is rejected with revision feedback, treat that message as
-requirements. Submit a complete replacement plan and wait for approval again.
-Do not continue execution after revision feedback.
+- If the retrieved material shows that the answer would be long, multi-part, comparative, or otherwise
+complex, create a complete answer outline and call `submit_agent_plan`. Do not describe the plan in plain text.
 
-After approval, the tool result is the approved plan. Execute that plan with
-the available research tools and produce the final evidence-grounded answer.
-Do not mention approval tools, handoffs, or internal workflow details.
+When comparing or synthesizing multiple source summaries, use `list_many` and
+`read_many` to retrieve the relevant artifacts together. Cite the file ID and
+artifact path for every factual claim.
+
 """
 
     @staticmethod
-    def _global(model: OpenAIResponsesModel) -> Agent[None]:
-        from agent.core.tools import submit_agent_plan
+    def _global(
+        model: OpenAIResponsesModel,
+        file_ids: list[str],
+        artifact_repo: ArtifactRepository,
+    ) -> Agent[None]:
+        from agent.core.tools.summary import build_summary_read_tools
 
         return Agent(
             name="global_agent",
             handoff_description=AgentFactory.GLOBAL_HANDOFF_DESCRIPTION,
             model=model,
-            instructions=AgentFactory.GLOBAL_INSTRUCTION,
-            tools=[submit_agent_plan],
+            instructions=(
+                f"{AgentFactory.GLOBAL_INSTRUCTION}\n"
+                "Available source-summary file IDs: "
+                f"{', '.join(file_ids) or 'None'}."
+            ),
+            tools=[
+                *build_summary_read_tools(
+                    artifact_repo,
+                    file_ids,
+                ),
+            ],
         )
 
     @staticmethod
@@ -100,7 +116,6 @@ Do not mention approval tools, handoffs, or internal workflow details.
                 from agents import WebSearchTool
 
                 tools.append(WebSearchTool(search_context_size="high"))
-
             return tools
 
         template = instruction_template or PromptsFactory.AGENTIC.get("agent2")
@@ -129,7 +144,13 @@ class AgentOrchestrator:
             self.deps.embedding_model,
             self.deps.model,
             inp,
-            handoffs=[AgentFactory._global(self.deps.model)],
+            handoffs=[
+                AgentFactory._global(
+                    self.deps.model,
+                    inp.file_ids,
+                    self.deps.artifact_repo,
+                ),
+            ],
         )
 
     async def stream(self, inp: RunInput) -> RunResultStreaming:
@@ -149,7 +170,35 @@ class AgentOrchestrator:
         agent = await self.build_agent(inp)
         return agent, await RunState.from_string(agent, state_string)
 
-    def resume(
+    async def resume(
+        self,
+        *,
+        inp: RunInput,
+        state_string: str,
+        decision: InterruptionDecision,
+        feedback: str = "",
+    ) -> RunResultStreaming:
+        agent, run_state = await self.load_run_state(inp, state_string)
+        interruptions = run_state.get_interruptions()
+        if not interruptions:
+            raise ValueError("The saved run has no pending interruptions")
+
+        if decision == "approve":
+            for interruption in interruptions:
+                run_state.approve(interruption)
+        elif decision == "revise":
+            rejection_message = self._revision_message(feedback)
+            for interruption in interruptions:
+                run_state.reject(
+                    interruption,
+                    rejection_message=rejection_message,
+                )
+        else:
+            raise ValueError(f"Unsupported interruption decision: {decision}")
+
+        return self.resume_state(agent, run_state)
+
+    def resume_state(
         self,
         agent: Agent[None],
         run_state: RunState[None],
@@ -158,4 +207,13 @@ class AgentOrchestrator:
             agent,
             input=run_state,
             max_turns=self.settings.max_turns,
+        )
+
+    @staticmethod
+    def _revision_message(feedback: str) -> str:
+        return (
+            "The human reviewer requested these plan changes:\n"
+            f"{feedback}\n\n"
+            "Revise the plan and submit the complete replacement plan for "
+            "approval. Do not execute the plan or write the final answer."
         )

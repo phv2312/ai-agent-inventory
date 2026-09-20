@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from agent.backend.api.container import ApiContainer
 from agent.backend.db.models import IndexStatus
 from agent.backend.repos.reference import SQLReferenceRepository
+from agent.core._agent.summary import DocumentSumamrizer
 from agent.core.deps.models import EmbeddingModel, ExtractorModel, VectorDBModel
 from agent.core.extractors.utils import materialized_file
 from agent.core.models.document import DocumentMetadata
@@ -79,7 +80,12 @@ class IndexingWorker:
                 EmbeddingModel.AZURE_OPENAI,
             )
             texts = [chunk.text for chunk in document.chunks]
-            embeddings = await embedding_model.embed(texts)
+            summary_dir = self.container.agent.artifact_repo.paths.root
+            summarizer = DocumentSumamrizer(self.container.agent.model)
+            embeddings, _ = await asyncio.gather(
+                embedding_model.embed(texts),
+                summarizer.summarize(document, summary_dir),
+            )
             milvus = self.container.agent.vectordbs.get(VectorDBModel.MILVUS)
             for chunk in document.chunks:
                 if isinstance(chunk.metadata, DocumentMetadata):
@@ -95,6 +101,7 @@ class IndexingWorker:
                 "Indexed reference",
                 reference_id=job.reference_id,
                 chunk_count=len(document.chunks),
+                summary_dir=str(summary_dir / document.fileid),
             )
         except Exception as exc:
             logger.exception("Indexing failed", reference_id=job.reference_id)

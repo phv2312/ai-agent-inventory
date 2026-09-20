@@ -51,6 +51,10 @@ export interface AgentInterruption {
 }
 
 export interface InterruptionData {
+    id?: string;
+    userMessageId?: string;
+    decision?: InterruptionDecision;
+    feedback?: string;
     conversationId: string;
     version: number;
     interruptions: AgentInterruption[];
@@ -286,4 +290,10 @@ async function* readSseResponse(
     } finally {
         reader.releaseLock();
     }
+}
+
+export async function getInterruptionHistory(conversationId: string): Promise<InterruptionData[]> {
+    const response = await fetch(`${BASE_URL}/api/v1/chats/${conversationId}/interruptions/history`);
+    if (!response.ok) throw new Error(await response.text());
+    return toCamelCaseObject(await response.json()) as InterruptionData[];
 }

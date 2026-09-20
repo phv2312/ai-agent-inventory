@@ -1,7 +1,7 @@
-from functools import wraps
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
+from functools import wraps
 from typing import Concatenate
 
 from agents import (
@@ -15,6 +15,8 @@ from openai.types.responses import ResponseTextDeltaEvent
 from agent.core.models.content_blocks import (
     ContentBlock,
     ContentBlockType,
+)
+from agent.core.models.content_blocks import (
     PersistedContentBlock as PContentBlock,
 )
 from agent.core.tools import AgentInterruption
@@ -54,7 +56,15 @@ class ChatStreamState:
     interruptions: list[AgentInterruption] = field(default_factory=list)
 
 
-type ParsedStreamEvent = ContentBlock | ParsedStreamError | ToolProgressDelta
+@dataclass
+class Interruption:
+    serialized_run_state: str
+    interruptions: list[AgentInterruption]
+
+
+type ParsedStreamEvent = (
+    ContentBlock | ParsedStreamError | ToolProgressDelta | Interruption
+)
 
 
 type FuncT[**P] = Callable[
@@ -164,6 +174,12 @@ def auto_catch_exceptions[**P](func: FuncT[P]) -> FuncT[P]:
             async for item in runstate_repo.finalize_parsing():
                 yield item
             self.last_state = runstate_repo.state
+        if self.last_state.status == ChatRunStatus.INTERRUPTED:
+            assert self.last_state.serialized_run_state is not None
+            yield Interruption(
+                serialized_run_state=self.last_state.serialized_run_state,
+                interruptions=self.last_state.interruptions,
+            )
 
     return wrapper
 

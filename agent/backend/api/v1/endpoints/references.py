@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 
 from agent.backend.api.container import ApiContainer
@@ -24,6 +25,7 @@ from agent.core.storages.config import AnchorFields
 from agent.core.storages.files.exporter import ReferenceExporter
 
 router = APIRouter()
+log = structlog.get_logger(__name__)
 
 PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
 CHUNK_PREVIEW_LENGTH = 240
@@ -59,6 +61,12 @@ async def upload_reference(
     content_type = reference.content_type or ""
     filename = reference.filename or "upload.pdf"
     if content_type not in PDF_CONTENT_TYPES and not filename.lower().endswith(".pdf"):
+        log.warning(
+            "reference_upload_rejected",
+            collection_id=collection_id,
+            reason="unsupported_media_type",
+            content_type=content_type,
+        )
         raise AppError(
             "UnsupportedMediaType",
             "Only PDF uploads are supported in v1",
@@ -67,6 +75,13 @@ async def upload_reference(
 
     raw = await reference.read()
     if len(raw) > settings.MAX_UPLOAD_BYTES:
+        log.warning(
+            "reference_upload_rejected",
+            collection_id=collection_id,
+            reason="file_too_large",
+            size_bytes=len(raw),
+            max_size_bytes=settings.MAX_UPLOAD_BYTES,
+        )
         raise AppError(
             "ValidationError",
             f"File exceeds maximum size of {settings.MAX_UPLOAD_BYTES} bytes",
@@ -83,6 +98,11 @@ async def upload_reference(
                 if parsed.get("doc_name"):
                     doc_name = str(parsed["doc_name"])
         except json.JSONDecodeError as exc:
+            log.warning(
+                "reference_upload_rejected",
+                collection_id=collection_id,
+                reason="invalid_metadata_json",
+            )
             raise AppError(
                 "ValidationError", f"Invalid metadata JSON: {exc}", 422
             ) from exc
@@ -91,9 +111,15 @@ async def upload_reference(
         repos = container.repos(session)
         collection = await repos.collections.get(collection_id)
         if collection is None:
+            log.warning("collection_not_found", collection_id=collection_id)
             raise AppError("NotFound", f"Collection {collection_id} not found", 404)
 
         if await repos.references.doc_name_exists(collection_id, doc_name):
+            log.warning(
+                "reference_upload_rejected",
+                collection_id=collection_id,
+                reason="duplicate_doc_name",
+            )
             raise AppError(
                 "ValidationError",
                 f"doc_name '{doc_name}' already exists in collection",
@@ -115,6 +141,7 @@ async def upload_reference(
         saved_key = container.agent.storage.write_bytes(source_key, raw)
         updated = await repos.references.set_file_path(record.id, saved_key)
         if updated is None:
+            log.warning("reference_not_found_after_create", reference_id=record.id)
             raise AppError("NotFound", "Reference not found after create", 404)
 
         await session.commit()
@@ -126,6 +153,12 @@ async def upload_reference(
         safe_filename,
         collection_id,
     )
+    log.info(
+        "reference_upload_accepted",
+        reference_id=updated.id,
+        collection_id=collection_id,
+        size_bytes=len(raw),
+    )
     return response
 
 
@@ -136,6 +169,7 @@ async def get_reference(
 ) -> ReferenceResponse:
     record = await repos.references.get(reference_id)
     if record is None:
+        log.warning("reference_not_found", reference_id=reference_id)
         raise AppError("NotFound", f"Reference {reference_id} not found", 404)
     return _to_response(record)
 
@@ -153,6 +187,7 @@ async def delete_reference(
         repos = container.repos(session)
         record = await repos.references.get(reference_id)
         if record is None:
+            log.warning("reference_not_found", reference_id=reference_id)
             raise AppError("NotFound", f"Reference {reference_id} not found", 404)
 
         milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
@@ -160,10 +195,12 @@ async def delete_reference(
 
         deleted = await repos.references.delete(reference_id)
         if not deleted:
+            log.warning("reference_delete_conflict", reference_id=reference_id)
             raise AppError("NotFound", f"Reference {reference_id} not found", 404)
         await session.commit()
 
     container.agent.storage.delete_prefix(ReferenceExporter(reference_id).prefix)
+    log.info("reference_deleted", reference_id=reference_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -182,6 +219,13 @@ async def list_reference_chunks(
     milvus = container.agent.vectordbs.get(VectorDBModel.MILVUS)
     scored = await milvus.retrieve_all_by_filter({AnchorFields.FILE_ID: [reference_id]})
     ordered = sorted(scored.root, key=chunk_preview_sort_key)
+    log.info(
+        "reference_chunks_listed",
+        reference_id=reference_id,
+        total_count=len(ordered),
+        offset=offset,
+        limit=limit,
+    )
     return ReferenceChunksResponse(
         total=len(ordered),
         items=[
@@ -206,6 +250,11 @@ async def get_reference_chunk(
         {AnchorFields.FILE_ID: [reference_id], AnchorFields.ID: [chunk_id]}, limit=1
     )
     if not scored.root:
+        log.warning(
+            "reference_chunk_not_found",
+            reference_id=reference_id,
+            chunk_id=chunk_id,
+        )
         raise AppError("NotFound", f"Chunk {chunk_id} not found", 404)
 
     chunk = scored.root[0].chunk
@@ -223,8 +272,14 @@ async def get_completed_reference(
 ) -> ReferenceRecord:
     record = await repos.references.get(reference_id)
     if record is None:
+        log.warning("reference_not_found", reference_id=reference_id)
         raise AppError("NotFound", f"Reference {reference_id} not found", 404)
     if record.status != IndexStatus.completed:
+        log.warning(
+            "reference_indexing_incomplete",
+            reference_id=reference_id,
+            status=record.status.value,
+        )
         raise AppError(
             "ValidationError",
             f"Reference indexing not completed (status={record.status.value})",

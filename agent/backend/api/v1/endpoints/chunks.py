@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, Query
 
 from agent.backend.api.container import ApiContainer, Repositories
@@ -14,6 +15,7 @@ from agent.core.models.document import DocumentMetadata, ScoredChunk
 from agent.core.storages.config import AnchorFields
 
 router = APIRouter()
+log = structlog.get_logger(__name__)
 
 
 @router.get(
@@ -30,8 +32,15 @@ async def batch_get_chunks(
     message_id: Annotated[str | None, Query()] = None,
 ) -> ChunksBatchResponse:
     if not chunk_ids:
+        log.warning("chunk_batch_rejected", reason="missing_chunk_ids")
         raise AppError("ValidationError", "chunk_ids is required", 422)
     if len(chunk_ids) > settings.MAX_CHUNK_IDS:
+        log.warning(
+            "chunk_batch_rejected",
+            reason="too_many_chunk_ids",
+            chunk_count=len(chunk_ids),
+            max_chunk_ids=settings.MAX_CHUNK_IDS,
+        )
         raise AppError(
             "ValidationError",
             f"At most {settings.MAX_CHUNK_IDS} chunk_ids allowed",
@@ -50,9 +59,11 @@ async def batch_get_chunks(
     highlighted_by_id = {str(s.chunk.chunk_id): s for s in highlighted}
 
     items: list[ChunkItemResponse] = []
+    missing_count = 0
     for chunk_id in chunk_ids:
         scored_chunk = highlighted_by_id.get(chunk_id) or by_id.get(chunk_id)
         if scored_chunk is None:
+            missing_count += 1
             items.append(
                 ChunkItemResponse(
                     id=chunk_id,
@@ -79,6 +90,13 @@ async def batch_get_chunks(
             )
         )
 
+    log.info(
+        "chunk_batch_retrieved",
+        requested_count=len(chunk_ids),
+        found_count=len(chunk_ids) - missing_count,
+        missing_count=missing_count,
+        has_message_context=message_id is not None,
+    )
     return ChunksBatchResponse(items=items)
 
 

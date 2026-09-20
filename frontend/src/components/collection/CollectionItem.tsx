@@ -34,6 +34,7 @@ export function Item({ collection, onNavigate }: Props) {
 
     return (
         <div
+            data-testid="collection-item"
             className={`group mx-2 my-1 cursor-pointer rounded-lg border px-3 py-3 transition-all duration-200 ${
                 isSelected
                     ? 'border-[var(--color-primary)]/40 bg-[var(--color-sidebar-active)]'

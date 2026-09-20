@@ -1,17 +1,51 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agent.backend.db.models import PendingAgentRunORM
+from agent.backend.db.models import InterruptionReviewORM, PendingAgentRunORM
 from agent.backend.repos.protocols import PendingAgentRunRecord
 
 
 class SQLPendingAgentRunRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def record_response(
+        self, pending: PendingAgentRunRecord, decision: str, feedback: str
+    ) -> None:
+        self.session.add(
+            InterruptionReviewORM(
+                conversation_id=pending.conversation_id,
+                user_message_id=pending.user_message_id,
+                version=pending.version,
+                interruptions=pending.interruptions,
+                decision=decision,
+                feedback=feedback,
+            )
+        )
+        await self.session.flush()
+
+    async def history(self, conversation_id: str) -> list[dict[str, Any]]:
+        rows = await self.session.scalars(
+            select(InterruptionReviewORM)
+            .where(InterruptionReviewORM.conversation_id == conversation_id)
+            .order_by(InterruptionReviewORM.created_at, InterruptionReviewORM.id)
+        )
+        return [
+            {
+                "id": row.id,
+                "user_message_id": row.user_message_id,
+                "conversation_id": row.conversation_id,
+                "version": row.version,
+                "interruptions": row.interruptions,
+                "decision": row.decision,
+                "feedback": row.feedback,
+            }
+            for row in rows
+        ]
 
     async def create(
         self,
@@ -65,11 +99,15 @@ class SQLPendingAgentRunRepository:
         await self.session.flush()
         return await self.get(conversation_id)
 
-    async def delete(self, conversation_id: str, version: int) -> bool:
+    async def delete(
+        self, conversation_id: str, version: int, user_message_id: str | None = None
+    ) -> bool:
         stmt = delete(PendingAgentRunORM).where(
             PendingAgentRunORM.conversation_id == conversation_id,
             PendingAgentRunORM.version == version,
         )
+        if user_message_id is not None:
+            stmt = stmt.where(PendingAgentRunORM.user_message_id == user_message_id)
         result = await self.session.execute(stmt)
         assert isinstance(result, CursorResult)
         return result.rowcount == 1
