@@ -1,6 +1,6 @@
-from enum import StrEnum
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -188,3 +188,25 @@ class ReferenceORM(Base):
     )
 
     collection: Mapped[CollectionORM] = relationship(back_populates="references")
+
+
+class InterruptionReviewORM(Base):
+    __tablename__ = "interruption_reviews"
+    __table_args__ = (
+        UniqueConstraint("conversation_id", "user_message_id", "version"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    conversation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("conversations.id", ondelete="CASCADE"), index=True
+    )
+    user_message_id: Mapped[str] = mapped_column(String(36))
+    version: Mapped[int] = mapped_column(Integer)
+    interruptions: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    decision: Mapped[str] = mapped_column(String(20))
+    feedback: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )

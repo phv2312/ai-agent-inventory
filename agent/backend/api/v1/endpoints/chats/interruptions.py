@@ -1,9 +1,11 @@
 import json
 from collections.abc import AsyncGenerator
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
+import anyio
 import structlog
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy.exc import IntegrityError
 from sse_starlette import ServerSentEvent
 from sse_starlette.sse import EventSourceResponse
 
@@ -21,7 +23,7 @@ from agent.backend.api.v1.payload.chats import (
 from agent.backend.chatstream.core import ChatStreamService
 from agent.backend.chatstream.models import InterruptionEventData
 from agent.core._agent import RunInput
-from agent.core._agent.parser.core import ChatRunStatus
+from agent.core._agent.parser.core import ChatRunStatus, Interruption
 
 router = APIRouter()
 log = structlog.get_logger(__name__)
@@ -42,6 +44,14 @@ async def get_pending_interruption(
             log.warning("conversation_not_found", conversation_id=conversation_id)
             raise AppError("NotFound", f"Conversation {conversation_id} not found", 404)
         pending = await repos.pending_runs.get(conversation_id)
+        history = await repos.pending_runs.history(conversation_id)
+        if pending and any(
+            row["version"] == pending.version
+            and {item["id"] for item in row["interruptions"]}
+            == {item["id"] for item in pending.interruptions}
+            for row in history
+        ):
+            pending = None
     if pending is None:
         log.warning("pending_interruption_not_found", conversation_id=conversation_id)
         raise AppError("NotFound", "There is no agent plan awaiting review", 404)
@@ -58,6 +68,18 @@ async def get_pending_interruption(
             "interruptions": pending.interruptions,
         }
     )
+
+
+@router.get("/{conversation_id}/interruptions/history")
+async def interruption_history(
+    conversation_id: str,
+    container: Annotated[ApiContainer, Depends(get_container)],
+) -> list[dict[str, Any]]:
+    async with container.session_factory() as session:
+        repos = container.repos(session)
+        if await repos.conversations.get(conversation_id) is None:
+            raise AppError("NotFound", "Conversation not found", 404)
+        return await repos.pending_runs.history(conversation_id)
 
 
 @router.post(
@@ -104,6 +126,15 @@ async def respond_to_interruption(
                 409,
             )
 
+        try:
+            await repos.pending_runs.record_response(
+                pending, payload.decision, payload.feedback or ""
+            )
+        except IntegrityError as exc:
+            raise AppError(
+                "InterruptionConflict", "This plan already has a response", 409
+            ) from exc
+
         if payload.decision == InterruptionDecision.CANCEL:
             deleted = await repos.pending_runs.delete(
                 conversation_id,
@@ -126,6 +157,8 @@ async def respond_to_interruption(
                 conversation_id=conversation_id,
                 pending_version=payload.version,
             )
+
+        await session.commit()
 
     if payload.decision == InterruptionDecision.CANCEL:
 
@@ -157,83 +190,101 @@ async def respond_to_interruption(
     )
 
     async def resumed_events() -> AsyncGenerator[ServerSentEvent, None]:
-        async for event in chat_service.resume(
-            snapshot=snapshot,
-            state_json=pending.state_json,
-            decision=resume_decision,
-            feedback=payload.feedback or "",
-        ):
-            if await request.is_disconnected():
+        try:
+            interruption: Interruption | None = None
+            async for event in chat_service.resume(
+                snapshot=snapshot,
+                state_json=pending.state_json,
+                decision=resume_decision,
+                feedback=payload.feedback or "",
+            ):
+                if isinstance(event, Interruption):
+                    interruption = event
+                    continue
+                if await request.is_disconnected():
+                    log.info(
+                        "pending_interruption_resume_disconnected",
+                        conversation_id=conversation_id,
+                        pending_version=payload.version,
+                    )
+                    return
+                yield event
+
+            state = chat_service.last_state
+            if state.status not in {
+                ChatRunStatus.INTERRUPTED,
+                ChatRunStatus.COMPLETED,
+            }:
+                log.warning(
+                    "pending_interruption_resume_ended_without_resolution",
+                    conversation_id=conversation_id,
+                    pending_version=payload.version,
+                    status=state.status.value,
+                )
+                return
+
+            if interruption is not None:
+                if (
+                    interruption.serialized_run_state is None
+                    or not interruption.interruptions
+                ):
+                    log.warning(
+                        "pending_interruption_resume_invalid",
+                        conversation_id=conversation_id,
+                        pending_version=payload.version,
+                    )
+                    return
+                async with container.session_factory() as session:
+                    repos = container.repos(session)
+                    revised = await repos.pending_runs.replace(
+                        conversation_id=conversation_id,
+                        version=payload.version,
+                        state_json=interruption.serialized_run_state,
+                        interruptions=[
+                            item.model_dump(mode="json")
+                            for item in interruption.interruptions
+                        ],
+                    )
+                    await session.commit()
+                if revised is None:
+                    log.warning(
+                        "pending_interruption_replace_conflict",
+                        conversation_id=conversation_id,
+                        pending_version=payload.version,
+                    )
+                    return
                 log.info(
-                    "pending_interruption_resume_disconnected",
+                    "pending_interruption_revised",
                     conversation_id=conversation_id,
-                    pending_version=payload.version,
+                    previous_version=payload.version,
+                    pending_version=revised.version,
+                    interruption_count=len(interruption.interruptions),
+                )
+                yield interruption_event(
+                    conversation_id,
+                    revised.version,
+                    interruption.interruptions,
                 )
                 return
-            yield event
 
-        state = chat_service.last_state
-        if state.status not in {
-            ChatRunStatus.INTERRUPTED,
-            ChatRunStatus.COMPLETED,
-        }:
-            log.warning(
-                "pending_interruption_resume_ended_without_resolution",
+            suggestion = await persist_completed_response(
+                container=container,
+                chat_service=chat_service,
                 conversation_id=conversation_id,
+                conversation_title=conversation.title,
+                user_message=snapshot.query,
                 pending_version=payload.version,
-                status=state.status.value,
             )
-            return
-
-        if state.status == ChatRunStatus.INTERRUPTED:
-            if state.serialized_run_state is None or not state.interruptions:
-                log.warning(
-                    "pending_interruption_resume_invalid",
-                    conversation_id=conversation_id,
-                    pending_version=payload.version,
-                )
-                return
-            async with container.session_factory() as session:
-                repos = container.repos(session)
-                revised = await repos.pending_runs.replace(
-                    conversation_id=conversation_id,
-                    version=payload.version,
-                    state_json=state.serialized_run_state,
-                    interruptions=[
-                        item.model_dump(mode="json") for item in state.interruptions
-                    ],
-                )
-                await session.commit()
-            if revised is None:
-                log.warning(
-                    "pending_interruption_replace_conflict",
-                    conversation_id=conversation_id,
-                    pending_version=payload.version,
-                )
-                return
-            log.info(
-                "pending_interruption_revised",
-                conversation_id=conversation_id,
-                previous_version=payload.version,
-                pending_version=revised.version,
-                interruption_count=len(state.interruptions),
-            )
-            yield interruption_event(
-                conversation_id,
-                revised.version,
-                state.interruptions,
-            )
-            return
-
-        suggestion = await persist_completed_response(
-            container=container,
-            chat_service=chat_service,
-            conversation_id=conversation_id,
-            conversation_title=conversation.title,
-            user_message=snapshot.query,
-            pending_version=payload.version,
-        )
-        if suggestion is not None:
-            yield suggestion
+            if suggestion is not None:
+                yield suggestion
+        finally:
+            # A response is durable even when execution fails or the client leaves.
+            # Retire only this version; a revised pending plan must survive.
+            with anyio.CancelScope(shield=True):
+                async with container.session_factory() as session:
+                    await container.repos(session).pending_runs.delete(
+                        conversation_id, payload.version, pending.user_message_id
+                    )
+                    await session.commit()
 
     return EventSourceResponse(resumed_events())

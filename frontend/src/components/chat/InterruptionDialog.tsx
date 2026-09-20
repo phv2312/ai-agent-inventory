@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
+import type { InterruptionData } from '../../services/api/chats';
 import { useChatStream } from '../../hooks/useChatStream';
 import { useAppSelector } from '../../hooks/redux';
 import { SparklesIcon } from '../../config/icons';
 
-export function InterruptionDialog() {
+export function InterruptionDialog({ review }: { review?: InterruptionData }) {
     const [showRevision, setShowRevision] = useState(false);
     const [feedback, setFeedback] = useState('');
-    const pending = useAppSelector((state) => state.chat.pendingInterruption);
+    const active = useAppSelector((state) => state.chat.pendingInterruption);
+    const pending = review ?? active;
     const interruptionError = useAppSelector(
         (state) => state.chat.interruptionError,
     );
@@ -17,12 +18,12 @@ export function InterruptionDialog() {
 
     if (!pending) return null;
 
-    return createPortal(
+    return (
         <div
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm"
+            className="flex justify-center px-4 py-4"
             role="dialog"
-            aria-modal="true"
-            aria-labelledby="global-plan-title"
+            aria-modal="false"
+            aria-labelledby={`global-plan-title-${pending.id ?? pending.version}`}
         >
             <div className="flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
                 <div className="border-b border-[var(--color-border)] px-6 py-5">
@@ -32,14 +33,13 @@ export function InterruptionDialog() {
                         </span>
                         <div>
                             <h2
-                                id="global-plan-title"
+                                id={`global-plan-title-${pending.id ?? pending.version}`}
                                 className="text-lg font-semibold text-[var(--color-text)]"
                             >
                                 Review global query plan
                             </h2>
                             <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                                Approve this plan before the global agent starts
-                                researching. Chat is paused while this review is open.
+                                {review ? "Saved plan review" : "Approve this plan before researching. Chat is paused while this review is open."}
                             </p>
                         </div>
                     </div>
@@ -90,7 +90,7 @@ export function InterruptionDialog() {
                         </div>
                     ))}
 
-                    {showRevision && (
+                    {!review && showRevision && (
                         <div className="mt-5">
                             <label
                                 htmlFor="global-plan-feedback"
@@ -111,14 +111,19 @@ export function InterruptionDialog() {
                         </div>
                     )}
 
-                    {interruptionError && (
+                    {!review && interruptionError && (
                         <p className="mt-4 rounded-lg bg-red-950/30 px-3 py-2 text-sm text-[var(--color-danger)]">
                             {interruptionError}
                         </p>
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] px-6 py-4">
+                {review ? (
+                    <div className="border-t border-[var(--color-border)] px-6 py-4 text-sm text-[var(--color-text)]">
+                        <p className="font-semibold">Your answer: {review.decision}</p>
+                        {review.feedback && <p className="mt-2 whitespace-pre-wrap">{review.feedback}</p>}
+                    </div>
+                ) : <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] px-6 py-4">
                     <button
                         type="button"
                         disabled={busy}
@@ -179,9 +184,8 @@ export function InterruptionDialog() {
                             </>
                         )}
                     </div>
-                </div>
+                </div>}
             </div>
-        </div>,
-        document.body,
+        </div>
     );
 }

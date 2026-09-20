@@ -11,7 +11,6 @@ from agent.backend.chatstream.models import (
     StreamErrorData,
     is_untitled_conversation,
 )
-from agent.core.deps.container import Container
 from agent.core._agent import InterruptionDecision, RunInput
 from agent.core._agent.parser import (
     ChatRunStatus,
@@ -20,6 +19,8 @@ from agent.core._agent.parser import (
     StreamParser,
     ToolProgressDelta,
 )
+from agent.core._agent.parser.core import Interruption
+from agent.core.deps.container import Container
 from agent.core.models.content_blocks import ContentBlock
 
 
@@ -30,7 +31,7 @@ class ChatStreamService:
 
     async def stream(
         self, *, snapshot: RunInput
-    ) -> AsyncGenerator[ServerSentEvent, None]:
+    ) -> AsyncGenerator[ServerSentEvent | Interruption, None]:
         orchestrator = self.agent_container.agent.get()
         try:
             result = await orchestrator.stream(snapshot)
@@ -47,7 +48,7 @@ class ChatStreamService:
         state_json: str,
         decision: InterruptionDecision,
         feedback: str = "",
-    ) -> AsyncGenerator[ServerSentEvent, None]:
+    ) -> AsyncGenerator[ServerSentEvent | Interruption, None]:
         orchestrator = self.agent_container.agent.get()
         try:
             result = await orchestrator.resume(
@@ -65,10 +66,13 @@ class ChatStreamService:
     async def _parse_result(
         self,
         result: RunResultStreaming,
-    ) -> AsyncGenerator[ServerSentEvent, None]:
+    ) -> AsyncGenerator[ServerSentEvent | Interruption, None]:
         parser = StreamParser()
         reasoning_text = ""
         async for event in parser.parse(result):
+            if isinstance(event, Interruption):
+                yield event
+                continue
             if isinstance(event, ContentBlock):
                 yield event.to_sse()
                 continue

@@ -23,7 +23,7 @@ from agent.backend.chatstream.models import StreamErrorData
 from agent.backend.db.models import MessageRole
 from agent.backend.services.scope import resolve_scope_reference_ids
 from agent.core._agent import RunInput
-from agent.core._agent.parser.core import ChatRunStatus
+from agent.core._agent.parser.core import ChatRunStatus, Interruption
 from agent.core.models.messages import (
     AssistantMessage,
     Message,
@@ -156,7 +156,11 @@ async def chat(
     )
 
     async def event_generator() -> AsyncGenerator[ServerSentEvent, None]:
+        interruption: Interruption | None = None
         async for event in chat_service.stream(snapshot=snapshot):
+            if isinstance(event, Interruption):
+                interruption = event
+                continue
             if await request.is_disconnected():
                 log.info(
                     "chat_stream_disconnected",
@@ -166,17 +170,12 @@ async def chat(
                 return
             yield event
 
-        if await request.is_disconnected():
-            log.info(
-                "chat_stream_disconnected",
-                conversation_id=conversation_id,
-                user_message_id=user_message.id,
-            )
-            return
-
         state = chat_service.last_state
-        if state.status == ChatRunStatus.INTERRUPTED:
-            if state.serialized_run_state is None or not state.interruptions:
+        if interruption is not None:
+            if (
+                interruption.serialized_run_state is None
+                or not interruption.interruptions
+            ):
                 log.warning(
                     "chat_interruption_invalid",
                     conversation_id=conversation_id,
@@ -197,10 +196,11 @@ async def chat(
                     pending = await repos.pending_runs.create(
                         conversation_id=conversation_id,
                         user_message_id=user_message.id,
-                        state_json=state.serialized_run_state,
+                        state_json=interruption.serialized_run_state,
                         request_snapshot=snapshot.model_dump(mode="json"),
                         interruptions=[
-                            item.model_dump(mode="json") for item in state.interruptions
+                            item.model_dump(mode="json")
+                            for item in interruption.interruptions
                         ],
                     )
                     await session.commit()
@@ -224,12 +224,12 @@ async def chat(
                 conversation_id=conversation_id,
                 user_message_id=user_message.id,
                 pending_version=pending.version,
-                interruption_count=len(state.interruptions),
+                interruption_count=len(interruption.interruptions),
             )
             yield interruption_event(
                 conversation_id,
                 pending.version,
-                state.interruptions,
+                interruption.interruptions,
             )
             return
         if state.status != ChatRunStatus.COMPLETED:

@@ -161,6 +161,11 @@ class ReferenceRepository(Protocol):
 
 
 class PendingAgentRunRepository(Protocol):
+    async def record_response(
+        self, pending: PendingAgentRunRecord, decision: str, feedback: str
+    ) -> None: ...
+    async def history(self, conversation_id: str) -> list[dict[str, Any]]: ...
+
     async def create(
         self,
         *,
@@ -179,4 +184,6 @@ class PendingAgentRunRepository(Protocol):
         state_json: str,
         interruptions: list[dict[str, Any]],
     ) -> PendingAgentRunRecord | None: ...
-    async def delete(self, conversation_id: str, version: int) -> bool: ...
+    async def delete(
+        self, conversation_id: str, version: int, user_message_id: str | None = None
+    ) -> bool: ...

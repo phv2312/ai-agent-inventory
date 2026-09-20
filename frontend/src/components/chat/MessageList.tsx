@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { InterruptionDialog } from './InterruptionDialog';
+import { Fragment, useEffect, useLayoutEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { clearError, fetchMessagesByConversation } from '../../store/chat.slice';
@@ -12,7 +13,7 @@ export function MessageList() {
         (state) => state.conversation.selectedConversationId,
     );
     const messages = useAppSelector((state) => state.chat.messages);
-    const { error, isStreaming, streamingMessageIdx, isLoadingMessages } =
+    const { error, isStreaming, streamingMessageIdx, isLoadingMessages, interruptionHistory, pendingInterruption } =
         useAppSelector((state) => state.chat);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,7 +73,7 @@ export function MessageList() {
             block: 'end',
             behavior: newMessage && !isStreaming ? 'smooth' : 'auto',
         });
-    }, [selectedConversationId, messages, isStreaming]);
+    }, [selectedConversationId, messages, isStreaming, interruptionHistory, pendingInterruption]);
 
     if (isLoadingMessages && !isStreaming) {
         return (
@@ -93,12 +94,17 @@ export function MessageList() {
         >
             <div className="mx-auto w-full max-w-3xl space-y-1 px-4 py-8 pb-4">
                 {messages.map((msg, idx) => (
+                    <Fragment key={msg.id}>
                     <MessageBubble
-                        key={msg.id}
                         message={msg}
                         isStreaming={isStreaming && idx === streamingMessageIdx}
                     />
+                    {interruptionHistory.filter((review) => review.userMessageId === msg.id).map((review) => (
+                        <InterruptionDialog key={review.id} review={review} />
+                    ))}
+                    </Fragment>
                 ))}
+                <InterruptionDialog key={`${selectedConversationId}-${pendingInterruption?.version}`} />
                 <ErrorBanner error={error} onClose={() => dispatch(clearError())} />
                 <div ref={messagesEndRef} />
             </div>

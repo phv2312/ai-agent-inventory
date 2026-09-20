@@ -3,7 +3,6 @@ import { Header } from './Header';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { EmptyChatState } from './EmptyChatState';
-import { InterruptionDialog } from './InterruptionDialog';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import {
     clearPendingInterruption,
@@ -51,7 +50,7 @@ export function Chat() {
                     />
                 </>
             )}
-            <InterruptionDialog />
+
         </main>
     );
 }
